@@ -5,6 +5,8 @@ import '../screens/transactions_screen.dart';
 import '../screens/add_transaction_screen.dart';
 import '../screens/budget_screen.dart';
 import '../screens/budget_stats_screen.dart'; // <-- додано
+import '../screens/category_screen.dart';
+
 
 class AppRoutes {
   static final routes = {
@@ -14,5 +16,7 @@ class AppRoutes {
     '/budget': (context) => const BudgetScreen(),
     '/budget-stats': (context) => const BudgetStatsScreen(), // <-- додано
     '/statistics': (context) => const StatisticsScreen(),
+    '/categories': (context) => const CategoryScreen(),
+
   };
 }

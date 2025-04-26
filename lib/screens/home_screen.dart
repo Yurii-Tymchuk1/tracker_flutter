@@ -29,6 +29,13 @@ class HomeScreen extends StatelessWidget {
               },
               child: const Text('Статистика бюджету'),
             ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pushNamed(context, '/categories');
+              },
+              child: const Text('Категорії'),
+            ),
+
 
           ],
         ),

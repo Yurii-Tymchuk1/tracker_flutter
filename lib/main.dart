@@ -5,8 +5,10 @@ import 'package:provider/provider.dart';
 import 'core/app_routes.dart';
 import 'data/models/transaction.dart';
 import 'data/models/budget.dart';
+import 'data/models/category.dart';
 import 'providers/transaction_provider.dart';
 import 'providers/budget_provider.dart';
+import 'providers/category_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,10 +16,11 @@ void main() async {
 
   Hive.registerAdapter(TransactionModelAdapter());
   Hive.registerAdapter(BudgetAdapter());
+  Hive.registerAdapter(CategoryModelAdapter());
 
-  // Тепер відкриваємо чисті бокси
   await Hive.openBox<TransactionModel>('transactions');
   await Hive.openBox<Budget>('budgets');
+  await Hive.openBox<CategoryModel>('categories');
 
   runApp(const TrackerApp());
 }
@@ -31,6 +34,13 @@ class TrackerApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => TransactionProvider()),
         ChangeNotifierProvider(create: (_) => BudgetProvider()),
+        ChangeNotifierProvider(
+          create: (_) {
+            final provider = CategoryProvider();
+            provider.initializeDefaultCategories();
+            return provider;
+          },
+        ),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

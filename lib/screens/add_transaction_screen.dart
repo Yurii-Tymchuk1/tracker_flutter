@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../data/models/transaction.dart';
 import '../providers/transaction_provider.dart';
+import '../providers/category_provider.dart';
 
 class AddTransactionScreen extends StatefulWidget {
   const AddTransactionScreen({super.key});
@@ -16,8 +17,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   final _amountController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
 
-  final List<String> _categories = ['Їжа', 'Транспорт', 'Розваги', 'Комуналка', 'Інше'];
-  String _selectedCategory = 'Інше';
+  String _selectedCategory = '';
 
   final Map<String, String> _currencySymbols = {
     'UAH': '₴',
@@ -34,11 +34,16 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 
   void _submitData() {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate() || _selectedCategory.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Будь ласка, заповніть всі поля.')),
+      );
+      return;
+    }
 
     final newTransaction = TransactionModel(
-      id: DateTime.now().toString(),
-      title: _titleController.text,
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      title: _titleController.text.trim(),
       amount: double.parse(_amountController.text),
       date: _selectedDate,
       category: _selectedCategory,
@@ -51,7 +56,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     _titleController.clear();
     _amountController.clear();
     _selectedDate = DateTime.now();
-    _selectedCategory = 'Інше';
+    _selectedCategory = '';
     _selectedCurrency = _currencySymbols.keys.first;
 
     Navigator.pop(context);
@@ -74,6 +79,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final categoryProvider = Provider.of<CategoryProvider>(context);
+    final categories = categoryProvider.categories.map((c) => c.name).toList();
+
+    if (_selectedCategory.isEmpty && categories.isNotEmpty) {
+      _selectedCategory = categories.first;
+    }
+
     return Scaffold(
       appBar: AppBar(title: const Text('Додати транзакцію')),
       body: Padding(
@@ -109,9 +121,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 ],
               ),
               DropdownButtonFormField<String>(
-                value: _selectedCategory,
+                value: categories.contains(_selectedCategory) ? _selectedCategory : null,
                 decoration: const InputDecoration(labelText: 'Категорія'),
-                items: _categories.map((cat) {
+                items: categories.map((cat) {
                   return DropdownMenuItem(
                     value: cat,
                     child: Text(cat),
@@ -119,8 +131,14 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 }).toList(),
                 onChanged: (value) {
                   setState(() {
-                    _selectedCategory = value!;
+                    _selectedCategory = value ?? '';
                   });
+                },
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Оберіть категорію';
+                  }
+                  return null;
                 },
               ),
               DropdownButtonFormField<String>(
@@ -148,5 +166,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _amountController.dispose();
+    super.dispose();
   }
 }
