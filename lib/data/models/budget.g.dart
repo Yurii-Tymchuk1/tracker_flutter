@@ -18,16 +18,17 @@ class BudgetAdapter extends TypeAdapter<Budget> {
     };
     return Budget(
       id: fields[0] as String,
-      category: fields[1] as String,
+      category: fields[1] as String?,
       maxAmount: fields[2] as double,
       currency: fields[3] as String,
+      isGeneral: fields[4] as bool,
     );
   }
 
   @override
   void write(BinaryWriter writer, Budget obj) {
     writer
-      ..writeByte(4)
+      ..writeByte(5)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -35,7 +36,9 @@ class BudgetAdapter extends TypeAdapter<Budget> {
       ..writeByte(2)
       ..write(obj.maxAmount)
       ..writeByte(3)
-      ..write(obj.currency);
+      ..write(obj.currency)
+      ..writeByte(4)
+      ..write(obj.isGeneral);
   }
 
   @override

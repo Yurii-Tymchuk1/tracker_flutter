@@ -9,7 +9,7 @@ class Budget extends HiveObject {
   String id;
 
   @HiveField(1)
-  String category;
+  String? category; // Категорія може бути null для загального бюджету
 
   @HiveField(2)
   double maxAmount;
@@ -17,16 +17,28 @@ class Budget extends HiveObject {
   @HiveField(3)
   String currency;
 
+  @HiveField(4)
+  bool isGeneral; // Додано: чи це загальний бюджет
+
   Budget({
     required this.id,
-    required this.category,
+    this.category,
     required this.maxAmount,
     required this.currency,
+    this.isGeneral = false,
   });
 
   double getSpentAmount(List<TransactionModel> transactions) {
     return transactions
-        .where((tx) => tx.category == category)
+        .where((tx) {
+      if (isGeneral) {
+        // Загальний бюджет ➔ всі транзакції тієї ж валюти
+        return tx.currency == currency;
+      } else {
+        // Бюджет на категорію ➔ транзакції тієї ж валюти і категорії
+        return tx.category == category && tx.currency == currency;
+      }
+    })
         .fold(0.0, (sum, tx) => sum + tx.amount);
   }
 

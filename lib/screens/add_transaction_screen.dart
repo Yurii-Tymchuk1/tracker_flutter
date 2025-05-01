@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:collection/collection.dart';
+
 import '../data/models/transaction.dart';
+import '../data/models/budget.dart';
 import '../providers/transaction_provider.dart';
+import '../providers/budget_provider.dart';
 import '../providers/category_provider.dart';
 
 class AddTransactionScreen extends StatefulWidget {
@@ -16,8 +20,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   final _titleController = TextEditingController();
   final _amountController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
-
   String _selectedCategory = '';
+  String _selectedCurrency = 'UAH';
 
   final Map<String, String> _currencySymbols = {
     'UAH': '₴',
@@ -25,40 +29,79 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     'EUR': '€',
     'PLN': 'zł',
   };
-  late String _selectedCurrency;
 
   @override
   void initState() {
     super.initState();
-    _selectedCurrency = _currencySymbols.keys.first;
+    final categories = context.read<CategoryProvider>().categories;
+    if (categories.isNotEmpty) {
+      _selectedCategory = categories.first.name;
+    }
   }
 
   void _submitData() {
-    if (!_formKey.currentState!.validate() || _selectedCategory.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Будь ласка, заповніть всі поля.')),
+    if (!_formKey.currentState!.validate()) return;
+
+    final title = _titleController.text.trim();
+    final amount = double.tryParse(_amountController.text) ?? 0;
+    if (amount <= 0 || _selectedCategory.isEmpty) return;
+
+    final transactionProvider = context.read<TransactionProvider>();
+    final budgetProvider = context.read<BudgetProvider>();
+    final transactions = transactionProvider.transactions;
+
+    final Budget? categoryBudget = budgetProvider.budgets.firstWhereOrNull(
+          (b) => b.category == _selectedCategory && !b.isGeneral && b.currency == _selectedCurrency,
+    );
+
+    final Budget? generalBudget = budgetProvider.budgets.firstWhereOrNull(
+          (b) => b.isGeneral && b.currency == _selectedCurrency,
+    );
+
+    bool isExceeded = false;
+    String warningMessage = '';
+
+    if (categoryBudget != null) {
+      final spent = categoryBudget.getSpentAmount(transactions) + amount;
+      if (spent > categoryBudget.maxAmount) {
+        isExceeded = true;
+        warningMessage = 'Перевищено бюджет для категорії ${categoryBudget.category}!';
+      }
+    } else if (generalBudget != null) {
+      final spent = generalBudget.getSpentAmount(transactions) + amount;
+      if (spent > generalBudget.maxAmount) {
+        isExceeded = true;
+        warningMessage = 'Перевищено загальний бюджет!';
+      }
+    }
+
+    if (isExceeded) {
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Увага'),
+          content: Text(warningMessage),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Ок'),
+            ),
+          ],
+        ),
       );
       return;
     }
 
     final newTransaction = TransactionModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
-      title: _titleController.text.trim(),
-      amount: double.parse(_amountController.text),
+      title: title,
+      amount: amount,
       date: _selectedDate,
       category: _selectedCategory,
       currency: _selectedCurrency,
     );
 
-    Provider.of<TransactionProvider>(context, listen: false)
-        .addTransaction(newTransaction);
-
-    _titleController.clear();
-    _amountController.clear();
-    _selectedDate = DateTime.now();
-    _selectedCategory = '';
-    _selectedCurrency = _currencySymbols.keys.first;
-
+    transactionProvider.addTransaction(newTransaction);
     Navigator.pop(context);
   }
 
@@ -79,12 +122,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final categoryProvider = Provider.of<CategoryProvider>(context);
+    final budgetProvider = context.watch<BudgetProvider>();
+    final categoryProvider = context.watch<CategoryProvider>();
     final categories = categoryProvider.categories.map((c) => c.name).toList();
-
-    if (_selectedCategory.isEmpty && categories.isNotEmpty) {
-      _selectedCategory = categories.first;
-    }
 
     return Scaffold(
       appBar: AppBar(title: const Text('Додати транзакцію')),
@@ -97,22 +137,18 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               TextFormField(
                 controller: _titleController,
                 decoration: const InputDecoration(labelText: 'Назва'),
-                validator: (value) =>
-                value!.isEmpty ? 'Введіть назву' : null,
+                validator: (value) => value!.isEmpty ? 'Введіть назву' : null,
               ),
               TextFormField(
                 controller: _amountController,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(labelText: 'Сума'),
-                validator: (value) =>
-                value!.isEmpty ? 'Введіть суму' : null,
+                validator: (value) => value!.isEmpty ? 'Введіть суму' : null,
               ),
               Row(
                 children: [
                   Expanded(
-                    child: Text(
-                      'Дата: ${_selectedDate.toLocal().toString().split(' ')[0]}',
-                    ),
+                    child: Text('Дата: ${_selectedDate.toLocal().toString().split(' ')[0]}'),
                   ),
                   TextButton(
                     onPressed: _presentDatePicker,
@@ -130,16 +166,20 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   );
                 }).toList(),
                 onChanged: (value) {
-                  setState(() {
-                    _selectedCategory = value ?? '';
-                  });
-                },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Оберіть категорію';
+                  if (value != null) {
+                    setState(() {
+                      _selectedCategory = value;
+                      final budget = budgetProvider.budgets.firstWhereOrNull(
+                            (b) => b.category == _selectedCategory && !b.isGeneral,
+                      );
+                      if (budget != null) {
+                        _selectedCurrency = budget.currency;
+                      }
+                    });
                   }
-                  return null;
                 },
+                validator: (value) =>
+                value == null || value.isEmpty ? 'Оберіть категорію' : null,
               ),
               DropdownButtonFormField<String>(
                 value: _selectedCurrency,
@@ -151,9 +191,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   );
                 }).toList(),
                 onChanged: (value) {
-                  setState(() {
-                    _selectedCurrency = value!;
-                  });
+                  if (value != null) {
+                    setState(() {
+                      _selectedCurrency = value;
+                    });
+                  }
                 },
               ),
               const SizedBox(height: 20),
