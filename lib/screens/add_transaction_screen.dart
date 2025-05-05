@@ -30,12 +30,24 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     'PLN': 'zł',
   };
 
+  late List<String> _currencies;
+
   @override
   void initState() {
     super.initState();
+
+    _currencies = _currencySymbols.keys.toList();
+
     final categories = context.read<CategoryProvider>().categories;
     if (categories.isNotEmpty) {
       _selectedCategory = categories.first.name;
+
+      final budget = context.read<BudgetProvider>().budgets.firstWhereOrNull(
+            (b) => b.category == _selectedCategory && !b.isGeneral,
+      );
+      if (budget != null) {
+        _selectedCurrency = budget.currency;
+      }
     }
   }
 
@@ -46,8 +58,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     final amount = double.tryParse(_amountController.text) ?? 0;
     if (amount <= 0 || _selectedCategory.isEmpty) return;
 
-    final transactionProvider = context.read<TransactionProvider>();
     final budgetProvider = context.read<BudgetProvider>();
+    final transactionProvider = context.read<TransactionProvider>();
     final transactions = transactionProvider.transactions;
 
     final Budget? categoryBudget = budgetProvider.budgets.firstWhereOrNull(
@@ -65,13 +77,15 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       final spent = categoryBudget.getSpentAmount(transactions) + amount;
       if (spent > categoryBudget.maxAmount) {
         isExceeded = true;
-        warningMessage = 'Перевищено бюджет для категорії ${categoryBudget.category}!';
+        warningMessage += 'Перевищено бюджет для категорії ${categoryBudget.category}.\n';
       }
-    } else if (generalBudget != null) {
+    }
+
+    if (generalBudget != null) {
       final spent = generalBudget.getSpentAmount(transactions) + amount;
       if (spent > generalBudget.maxAmount) {
         isExceeded = true;
-        warningMessage = 'Перевищено загальний бюджет!';
+        warningMessage += 'Перевищено загальний бюджет.';
       }
     }
 
@@ -80,17 +94,31 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         context: context,
         builder: (_) => AlertDialog(
           title: const Text('Увага'),
-          content: Text(warningMessage),
+          content: Text(warningMessage.trim()),
           actions: [
             TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _saveTransaction(title, amount);
+              },
+              child: const Text('Додати попри це'),
+            ),
+            TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Ок'),
+              child: const Text('Скасувати'),
             ),
           ],
         ),
       );
       return;
     }
+
+    _saveTransaction(title, amount);
+  }
+
+  void _saveTransaction(String title, double amount) {
+    final transactionProvider = context.read<TransactionProvider>();
+    final budgetProvider = context.read<BudgetProvider>();
 
     final newTransaction = TransactionModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -102,6 +130,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     );
 
     transactionProvider.addTransaction(newTransaction);
+    budgetProvider.refresh();
     Navigator.pop(context);
   }
 
@@ -125,6 +154,17 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     final budgetProvider = context.watch<BudgetProvider>();
     final categoryProvider = context.watch<CategoryProvider>();
     final categories = categoryProvider.categories.map((c) => c.name).toList();
+
+    final currencyItems = _currencySymbols.keys.toSet().map((code) {
+      return DropdownMenuItem(
+        value: code,
+        child: Text('$code (${_currencySymbols[code]})'),
+      );
+    }).toList();
+
+    final validCurrencyValue = _currencySymbols.keys.contains(_selectedCurrency)
+        ? _selectedCurrency
+        : null;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Додати транзакцію')),
@@ -178,18 +218,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     });
                   }
                 },
-                validator: (value) =>
-                value == null || value.isEmpty ? 'Оберіть категорію' : null,
+                validator: (value) => value == null || value.isEmpty ? 'Оберіть категорію' : null,
               ),
               DropdownButtonFormField<String>(
-                value: _selectedCurrency,
+                value: validCurrencyValue,
                 decoration: const InputDecoration(labelText: 'Валюта'),
-                items: _currencySymbols.keys.map((code) {
-                  return DropdownMenuItem(
-                    value: code,
-                    child: Text('$code (${_currencySymbols[code]})'),
-                  );
-                }).toList(),
+                items: currencyItems,
                 onChanged: (value) {
                   if (value != null) {
                     setState(() {

@@ -41,6 +41,25 @@ class HomeScreen extends StatelessWidget {
               onPressed: () => Navigator.pushNamed(context, '/categories'),
               child: const Text('Категорії'),
             ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pushNamed(context, '/incomes');
+              },
+              child: const Text('Перейти до доходів'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pushNamed(context, '/income-stats'),
+              child: const Text('Статистика доходів'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pushNamed(context, '/income-categories'),
+              child: const Text('Категорії доходів'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pushNamed(context, '/income-stats'),
+              child: const Text('Аналітика доходів'),
+            ),
+
           ],
         ),
       ),

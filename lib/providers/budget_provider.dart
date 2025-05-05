@@ -5,10 +5,14 @@ import '../data/models/transaction.dart';
 
 class BudgetProvider with ChangeNotifier {
   final Box<Budget> _budgetBox = Hive.box<Budget>('budgets');
-  final Box<TransactionModel> _transactionBox = Hive.box<TransactionModel>('transactions');
+  List<TransactionModel> _externalTransactions = [];
 
-  List<Budget> get budgets => _budgetBox.values.toList();
-  List<TransactionModel> get transactions => _transactionBox.values.toList();
+  List<Budget> get budgets => _budgetBox.values.toList(); // живий доступ
+
+  void updateTransactions(List<TransactionModel> transactions) {
+    _externalTransactions = transactions;
+    notifyListeners();
+  }
 
   void addBudget(Budget budget) async {
     await _budgetBox.put(budget.id, budget);
@@ -16,19 +20,28 @@ class BudgetProvider with ChangeNotifier {
   }
 
   void deleteBudget(Budget budget) async {
-    await budget.delete();
-    notifyListeners();
+    await _budgetBox.delete(budget.id); // ✅ ключ - це id
+    notifyListeners(); // 🔁 оновлює екран
   }
 
   double getSpentAmountFor(Budget budget) {
-    return budget.getSpentAmount(transactions);
+    return budget.getSpentAmount(_externalTransactions);
   }
 
   double getRemainingAmountFor(Budget budget) {
-    return budget.getRemainingAmount(transactions);
+    return budget.getRemainingAmount(_externalTransactions);
   }
 
   bool isBudgetExceeded(Budget budget) {
-    return budget.isExceeded(transactions);
+    return budget.isExceeded(_externalTransactions);
+  }
+
+  bool isBudgetNearLimit(Budget budget, {double threshold = 0.1}) {
+    final remaining = budget.getRemainingAmount(_externalTransactions);
+    return remaining > 0 && (remaining / budget.maxAmount) < threshold;
+  }
+
+  void refresh() {
+    notifyListeners();
   }
 }
