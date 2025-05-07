@@ -8,7 +8,7 @@ part of 'category.dart';
 
 class CategoryModelAdapter extends TypeAdapter<CategoryModel> {
   @override
-  final int typeId = 2;
+  final int typeId = 4;
 
   @override
   CategoryModel read(BinaryReader reader) {
@@ -19,17 +19,20 @@ class CategoryModelAdapter extends TypeAdapter<CategoryModel> {
     return CategoryModel(
       id: fields[0] as String,
       name: fields[1] as String,
+      type: fields[2] as CategoryType,
     );
   }
 
   @override
   void write(BinaryWriter writer, CategoryModel obj) {
     writer
-      ..writeByte(2)
+      ..writeByte(3)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
-      ..write(obj.name);
+      ..write(obj.name)
+      ..writeByte(2)
+      ..write(obj.type);
   }
 
   @override
@@ -39,6 +42,45 @@ class CategoryModelAdapter extends TypeAdapter<CategoryModel> {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is CategoryModelAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
+}
+
+class CategoryTypeAdapter extends TypeAdapter<CategoryType> {
+  @override
+  final int typeId = 3;
+
+  @override
+  CategoryType read(BinaryReader reader) {
+    switch (reader.readByte()) {
+      case 0:
+        return CategoryType.expense;
+      case 1:
+        return CategoryType.income;
+      default:
+        return CategoryType.expense;
+    }
+  }
+
+  @override
+  void write(BinaryWriter writer, CategoryType obj) {
+    switch (obj) {
+      case CategoryType.expense:
+        writer.writeByte(0);
+        break;
+      case CategoryType.income:
+        writer.writeByte(1);
+        break;
+    }
+  }
+
+  @override
+  int get hashCode => typeId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CategoryTypeAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }

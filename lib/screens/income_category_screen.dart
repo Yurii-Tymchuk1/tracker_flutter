@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/income_category_provider.dart';
-import '../data/models/income_category.dart';
+import '../providers/category_provider.dart';
+import '../data/models/category.dart';
 
 class IncomeCategoryScreen extends StatelessWidget {
   IncomeCategoryScreen({super.key});
@@ -10,8 +10,8 @@ class IncomeCategoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final categoryProvider = Provider.of<IncomeCategoryProvider>(context);
-    final categories = categoryProvider.categories;
+    final categoryProvider = Provider.of<CategoryProvider>(context);
+    final incomeCategories = categoryProvider.getCategoriesByType(CategoryType.income);
 
     return Scaffold(
       appBar: AppBar(
@@ -36,7 +36,13 @@ class IncomeCategoryScreen extends StatelessWidget {
                   onPressed: () {
                     final name = _controller.text.trim();
                     if (name.isNotEmpty) {
-                      categoryProvider.addCategory(name);
+                      categoryProvider.addCategory(
+                        CategoryModel(
+                          id: DateTime.now().millisecondsSinceEpoch.toString(),
+                          name: name,
+                          type: CategoryType.income,
+                        ),
+                      );
                       _controller.clear();
                     }
                   },
@@ -45,16 +51,18 @@ class IncomeCategoryScreen extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: ListView.builder(
-              itemCount: categories.length,
+            child: incomeCategories.isEmpty
+                ? const Center(child: Text('Категорій ще немає'))
+                : ListView.builder(
+              itemCount: incomeCategories.length,
               itemBuilder: (_, index) {
-                final category = categories[index];
+                final category = incomeCategories[index];
                 return ListTile(
                   title: Text(category.name),
                   trailing: IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),
                     onPressed: () {
-                      categoryProvider.deleteCategory(category);
+                      categoryProvider.deleteCategory(category.id);
                     },
                   ),
                 );

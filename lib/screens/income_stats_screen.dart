@@ -50,7 +50,9 @@ class IncomeStatsScreen extends StatelessWidget {
                   return PieChartSectionData(
                     color: color,
                     value: value,
-                    title: '${(value / totalIncome * 100).toStringAsFixed(1)}%',
+                    title: totalIncome == 0
+                        ? '0%'
+                        : '${(value / totalIncome * 100).toStringAsFixed(1)}%',
                     radius: 80,
                     titleStyle: const TextStyle(
                       fontSize: 14,
@@ -58,6 +60,7 @@ class IncomeStatsScreen extends StatelessWidget {
                       color: Colors.white,
                     ),
                   );
+
                 }).toList(),
               ),
             ),

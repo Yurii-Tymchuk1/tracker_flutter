@@ -40,7 +40,7 @@ class IncomeChartScreen extends StatelessWidget {
               return PieChartSectionData(
                 color: color,
                 value: entry.value,
-                title: '${entry.key} (${entry.value.toStringAsFixed(0)})',
+                title: '${entry.key}\n${entry.value.toStringAsFixed(0)}',
                 radius: 80,
                 titleStyle: const TextStyle(
                   fontSize: 14,

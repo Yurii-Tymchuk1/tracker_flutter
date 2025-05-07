@@ -1,22 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../data/models/transaction.dart';
+import '../providers/transaction_provider.dart';
+import '../providers/budget_provider.dart';
+import '../providers/category_provider.dart';
 import 'package:intl/intl.dart';
 
-import '../data/models/income.dart';
-import '../data/models/category.dart';
-import '../providers/income_provider.dart';
-import '../providers/category_provider.dart';
+class EditTransactionScreen extends StatefulWidget {
+  final TransactionModel transaction;
 
-class EditIncomeScreen extends StatefulWidget {
-  final IncomeModel income;
-
-  const EditIncomeScreen({super.key, required this.income});
+  const EditTransactionScreen({super.key, required this.transaction});
 
   @override
-  State<EditIncomeScreen> createState() => _EditIncomeScreenState();
+  State<EditTransactionScreen> createState() => _EditTransactionScreenState();
 }
 
-class _EditIncomeScreenState extends State<EditIncomeScreen> {
+class _EditTransactionScreenState extends State<EditTransactionScreen> {
   late TextEditingController _amountController;
   late DateTime _selectedDate;
   late String _selectedCurrency;
@@ -32,10 +31,10 @@ class _EditIncomeScreenState extends State<EditIncomeScreen> {
   @override
   void initState() {
     super.initState();
-    _amountController = TextEditingController(text: widget.income.amount.toString());
-    _selectedDate = widget.income.date;
-    _selectedCurrency = widget.income.currency;
-    _selectedCategory = widget.income.category;
+    _amountController = TextEditingController(text: widget.transaction.amount.toString());
+    _selectedDate = widget.transaction.date;
+    _selectedCurrency = widget.transaction.currency;
+    _selectedCategory = widget.transaction.category;
   }
 
   void _presentDatePicker() async {
@@ -50,37 +49,32 @@ class _EditIncomeScreenState extends State<EditIncomeScreen> {
     }
   }
 
-  Future<void> _saveIncome() async {
-    final amount = double.tryParse(_amountController.text) ?? widget.income.amount;
+  Future<void> _saveTransaction() async {
+    final amount = double.tryParse(_amountController.text) ?? widget.transaction.amount;
 
-    if (amount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Сума має бути більшою за 0')),
-      );
-      return;
-    }
-
-    final updatedIncome = IncomeModel(
-      id: widget.income.id,
+    final updatedTransaction = widget.transaction.copyWith(
       amount: amount,
       date: _selectedDate,
       currency: _selectedCurrency,
       category: _selectedCategory,
-      title: _selectedCategory,
+      title: _selectedCategory, // використовуємо категорію як назву
     );
 
-    final incomeProvider = Provider.of<IncomeProvider>(context, listen: false);
-    await incomeProvider.updateIncome(updatedIncome);
+    final txProvider = Provider.of<TransactionProvider>(context, listen: false);
+    final budgetProvider = Provider.of<BudgetProvider>(context, listen: false);
+
+    await txProvider.updateTransaction(updatedTransaction, budgetProvider);
+    budgetProvider.updateTransactions(txProvider.transactions); // 🔁 оновлення бюджету
 
     if (mounted) Navigator.of(context).pop();
   }
 
-  Future<void> _deleteIncome() async {
+  Future<void> _deleteTransaction() async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Підтвердження'),
-        content: const Text('Видалити цей дохід?'),
+        content: const Text('Видалити цю транзакцію?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
@@ -95,11 +89,18 @@ class _EditIncomeScreenState extends State<EditIncomeScreen> {
     );
 
     if (confirm == true) {
-      await Provider.of<IncomeProvider>(context, listen: false).deleteIncome(widget.income);
+      await Provider.of<TransactionProvider>(context, listen: false)
+          .deleteTransactionById(widget.transaction.id);
+
+      // 🔄 після видалення — оновити бюджети
+      final txProvider = Provider.of<TransactionProvider>(context, listen: false);
+      final budgetProvider = Provider.of<BudgetProvider>(context, listen: false);
+      budgetProvider.updateTransactions(txProvider.transactions);
+
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Дохід видалено')),
+          const SnackBar(content: Text('Транзакцію видалено')),
         );
       }
     }
@@ -108,15 +109,15 @@ class _EditIncomeScreenState extends State<EditIncomeScreen> {
   @override
   Widget build(BuildContext context) {
     final categoryProvider = Provider.of<CategoryProvider>(context);
-    final incomeCategories = categoryProvider.getCategoriesByType(CategoryType.income);
+    final categories = categoryProvider.categories;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Редагувати дохід'),
+        title: const Text('Редагувати транзакцію'),
         actions: [
           IconButton(
             icon: const Icon(Icons.delete),
-            onPressed: _deleteIncome,
+            onPressed: _deleteTransaction,
           ),
         ],
       ),
@@ -161,7 +162,7 @@ class _EditIncomeScreenState extends State<EditIncomeScreen> {
             DropdownButtonFormField<String>(
               value: _selectedCategory,
               decoration: const InputDecoration(labelText: 'Категорія'),
-              items: incomeCategories.map((cat) {
+              items: categories.map((cat) {
                 return DropdownMenuItem(
                   value: cat.name,
                   child: Text(cat.name),
@@ -175,7 +176,7 @@ class _EditIncomeScreenState extends State<EditIncomeScreen> {
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: _saveIncome,
+              onPressed: _saveTransaction,
               child: const Text('Зберегти'),
             ),
           ],

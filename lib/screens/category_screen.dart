@@ -1,50 +1,70 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/category_provider.dart';
 import '../data/models/category.dart';
+import '../providers/category_provider.dart';
 
-class CategoryScreen extends StatelessWidget {
+class CategoryScreen extends StatefulWidget {
   const CategoryScreen({super.key});
+
+  @override
+  State<CategoryScreen> createState() => _CategoryScreenState();
+}
+
+class _CategoryScreenState extends State<CategoryScreen> {
+  CategoryType _selectedType = CategoryType.expense;
+  final TextEditingController _controller = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
     final categoryProvider = Provider.of<CategoryProvider>(context);
-    final categories = categoryProvider.categories;
-
-    final TextEditingController _controller = TextEditingController();
+    final categories = categoryProvider.getCategoriesByType(_selectedType);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Категорії'),
-      ),
+      appBar: AppBar(title: const Text('Категорії')),
       body: Column(
         children: [
+          ToggleButtons(
+            isSelected: [
+              _selectedType == CategoryType.expense,
+              _selectedType == CategoryType.income,
+            ],
+            onPressed: (index) {
+              setState(() {
+                _selectedType = CategoryType.values[index];
+              });
+            },
+            children: const [
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Text('Витрати'),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Text('Доходи'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
           Expanded(
             child: categories.isEmpty
-                ? const Center(
-              child: Text(
-                'Категорій ще немає. Додайте нову!',
-                style: TextStyle(fontSize: 16),
-              ),
-            )
+                ? const Center(child: Text('Немає категорій'))
                 : ListView.builder(
               itemCount: categories.length,
-              itemBuilder: (ctx, i) {
-                final category = categories[i];
+              itemBuilder: (_, index) {
+                final cat = categories[index];
                 return ListTile(
-                  title: Text(category.name),
+                  title: Text(cat.name),
                   trailing: IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () {
-                      categoryProvider.deleteCategory(category);
-                    },
+                    onPressed: () =>
+                        categoryProvider.deleteCategory(cat.id),
                   ),
                 );
               },
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.all(12),
             child: Row(
               children: [
                 Expanded(
@@ -52,17 +72,17 @@ class CategoryScreen extends StatelessWidget {
                     controller: _controller,
                     decoration: const InputDecoration(
                       labelText: 'Нова категорія',
-                      border: OutlineInputBorder(),
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
                 ElevatedButton(
                   onPressed: () {
-                    if (_controller.text.trim().isNotEmpty) {
+                    final name = _controller.text.trim();
+                    if (name.isNotEmpty) {
                       final newCategory = CategoryModel(
                         id: DateTime.now().millisecondsSinceEpoch.toString(),
-                        name: _controller.text.trim(),
+                        name: name,
+                        type: _selectedType,
                       );
                       categoryProvider.addCategory(newCategory);
                       _controller.clear();
@@ -76,5 +96,11 @@ class CategoryScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 }

@@ -8,7 +8,7 @@ part of 'budget.dart';
 
 class BudgetAdapter extends TypeAdapter<Budget> {
   @override
-  final int typeId = 0;
+  final int typeId = 1;
 
   @override
   Budget read(BinaryReader reader) {
@@ -22,13 +22,13 @@ class BudgetAdapter extends TypeAdapter<Budget> {
       maxAmount: fields[2] as double,
       currency: fields[3] as String,
       isGeneral: fields[4] as bool,
-    );
+    )..lastReset = fields[5] as DateTime?;
   }
 
   @override
   void write(BinaryWriter writer, Budget obj) {
     writer
-      ..writeByte(5)
+      ..writeByte(6)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -38,7 +38,9 @@ class BudgetAdapter extends TypeAdapter<Budget> {
       ..writeByte(3)
       ..write(obj.currency)
       ..writeByte(4)
-      ..write(obj.isGeneral);
+      ..write(obj.isGeneral)
+      ..writeByte(5)
+      ..write(obj.lastReset);
   }
 
   @override

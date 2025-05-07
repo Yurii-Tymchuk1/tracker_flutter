@@ -179,7 +179,7 @@ class BudgetScreen extends StatelessWidget {
                 });
 
                 if (amount > 0 && !exists) {
-                  final newBudget = Budget(
+                  final updatedBudget = Budget(
                     id: DateTime.now().millisecondsSinceEpoch.toString(),
                     category: _isGeneral ? null : _selectedCategory,
                     maxAmount: amount,
@@ -187,7 +187,7 @@ class BudgetScreen extends StatelessWidget {
                     isGeneral: _isGeneral,
                   );
 
-                  budgetProvider.addBudget(newBudget);
+                  budgetProvider.updateBudget(updatedBudget);
                   Navigator.of(ctx).pop();
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(

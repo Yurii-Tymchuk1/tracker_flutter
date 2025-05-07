@@ -7,6 +7,7 @@ import '../data/models/budget.dart';
 import '../providers/transaction_provider.dart';
 import '../providers/budget_provider.dart';
 import '../providers/category_provider.dart';
+import 'package:intl/intl.dart';
 
 class AddTransactionScreen extends StatefulWidget {
   const AddTransactionScreen({super.key});
@@ -188,7 +189,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: Text('Дата: ${_selectedDate.toLocal().toString().split(' ')[0]}'),
+                    child: Text(
+                      'Дата: ${DateFormat.yMMMd('uk').format(_selectedDate)}',
+                      style: const TextStyle(fontSize: 16),
+                    ),
                   ),
                   TextButton(
                     onPressed: _presentDatePicker,

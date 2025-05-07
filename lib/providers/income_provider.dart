@@ -24,9 +24,17 @@ class IncomeProvider with ChangeNotifier {
   }
 
   Future<void> updateIncome(IncomeModel updated) async {
-    await updated.save();
-    notifyListeners();
+    final keyToUpdate = _incomeBox.keys.firstWhere(
+          (key) => _incomeBox.get(key)?.id == updated.id,
+      orElse: () => null,
+    );
+
+    if (keyToUpdate != null) {
+      await _incomeBox.put(keyToUpdate, updated);
+      notifyListeners(); // оновлює графіки, списки, суми тощо
+    }
   }
+
 
 
 }

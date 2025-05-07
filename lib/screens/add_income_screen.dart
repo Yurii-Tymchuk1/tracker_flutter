@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
+
 import '../data/models/income.dart';
+import '../data/models/category.dart';
 import '../providers/income_provider.dart';
-import '../providers/income_category_provider.dart';
+import '../providers/category_provider.dart';
 
 class AddIncomeScreen extends StatefulWidget {
   const AddIncomeScreen({super.key});
@@ -35,7 +38,7 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
 
     final income = IncomeModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
-      title: _selectedCategory!, // використовуємо категорію як назву
+      title: _selectedCategory!,
       amount: amount,
       date: _selectedDate,
       currency: _selectedCurrency,
@@ -60,8 +63,8 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final categoryProvider = Provider.of<IncomeCategoryProvider>(context);
-    final categories = categoryProvider.categories;
+    final categoryProvider = Provider.of<CategoryProvider>(context);
+    final incomeCategories = categoryProvider.getCategoriesByType(CategoryType.income);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Додати дохід')),
@@ -80,7 +83,10 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: Text('Дата: ${_selectedDate.toLocal().toString().split(" ")[0]}'),
+                    child: Text(
+                      'Дата: ${DateFormat.yMMMd('uk').format(_selectedDate)}',
+                      style: const TextStyle(fontSize: 16),
+                    ),
                   ),
                   TextButton(
                     onPressed: _presentDatePicker,
@@ -108,7 +114,7 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
               DropdownButtonFormField<String>(
                 value: _selectedCategory,
                 decoration: const InputDecoration(labelText: 'Категорія'),
-                items: categories.map((cat) {
+                items: incomeCategories.map((cat) {
                   return DropdownMenuItem(
                     value: cat.name,
                     child: Text(cat.name),

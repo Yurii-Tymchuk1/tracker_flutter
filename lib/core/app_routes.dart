@@ -10,6 +10,9 @@ import '../screens/income_screen.dart';
 import '../screens/income_stats_screen.dart';
 import '../screens/income_category_screen.dart';
 import '../screens/income_chart_screen.dart';
+import '../screens/edit_transaction_screen.dart';
+import '../data/models/transaction.dart';
+
 
 
 
@@ -30,6 +33,10 @@ class AppRoutes {
     '/income-categories': (context) => IncomeCategoryScreen(),
     '/income-chart': (context) => const IncomeChartScreen(),
 
+    '/edit-transaction': (context) {
+      final transaction = ModalRoute.of(context)!.settings.arguments as TransactionModel;
+      return EditTransactionScreen(transaction: transaction);
+    },
   };
 
 }

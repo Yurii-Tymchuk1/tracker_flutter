@@ -7,28 +7,38 @@ class CategoryProvider with ChangeNotifier {
 
   List<CategoryModel> get categories => _categoryBox.values.toList();
 
-  void addCategory(CategoryModel category) async {
+  Future<void> addCategory(CategoryModel category) async {
     await _categoryBox.put(category.id, category);
     notifyListeners();
   }
 
-  void deleteCategory(CategoryModel category) async {
-    await category.delete();
+  Future<void> deleteCategory(String id) async {
+    await _categoryBox.delete(id);
     notifyListeners();
   }
 
-  void initializeDefaultCategories() async {
+  Future<void> updateCategory(CategoryModel updated) async {
+    await _categoryBox.put(updated.id, updated);
+    notifyListeners();
+  }
+
+  List<CategoryModel> getCategoriesByType(CategoryType type) {
+    return _categoryBox.values.where((c) => c.type == type).toList();
+  }
+
+  Future<void> initializeDefaultCategories() async {
     if (_categoryBox.isEmpty) {
-      final defaults = [
-        CategoryModel(id: '1', name: 'Їжа'),
-        CategoryModel(id: '2', name: 'Транспорт'),
-        CategoryModel(id: '3', name: 'Розваги'),
-        CategoryModel(id: '4', name: 'Комуналка'),
-        CategoryModel(id: '5', name: 'Інше'),
+      final defaultCategories = [
+        CategoryModel(id: '1', name: 'Продукти', type: CategoryType.expense),
+        CategoryModel(id: '2', name: 'Транспорт', type: CategoryType.expense),
+        CategoryModel(id: '3', name: 'Зарплата', type: CategoryType.income),
+        CategoryModel(id: '4', name: 'Фріланс', type: CategoryType.income),
       ];
-      for (var category in defaults) {
-        await _categoryBox.put(category.id, category);
+
+      for (var cat in defaultCategories) {
+        await _categoryBox.put(cat.id, cat);
       }
+
       notifyListeners();
     }
   }

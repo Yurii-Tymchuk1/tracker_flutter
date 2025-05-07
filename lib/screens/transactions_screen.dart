@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../data/models/transaction.dart';
 import '../providers/transaction_provider.dart';
+import 'edit_transaction_screen.dart';
+import 'package:intl/intl.dart';
 
 class TransactionsScreen extends StatefulWidget {
   const TransactionsScreen({Key? key}) : super(key: key);
@@ -11,14 +13,13 @@ class TransactionsScreen extends StatefulWidget {
 }
 
 class _TransactionsScreenState extends State<TransactionsScreen> {
-  int _selectedMonth = DateTime.now().month; // За замовчуванням поточний місяць
+  int _selectedMonth = DateTime.now().month;
 
   @override
   Widget build(BuildContext context) {
     final transactionProvider = Provider.of<TransactionProvider>(context);
     final transactions = transactionProvider.transactions;
 
-    // Фільтрація транзакцій по місяцю
     final filteredTransactions = transactions.where((tx) {
       return tx.date.month == _selectedMonth;
     }).toList();
@@ -27,7 +28,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       appBar: AppBar(title: const Text('Транзакції')),
       body: Column(
         children: [
-          // Випадаючий список місяців
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: DropdownButton<int>(
@@ -40,21 +40,18 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               }),
               onChanged: (value) {
                 if (value != null) {
-                  setState(() {
-                    _selectedMonth = value;
-                  });
+                  setState(() => _selectedMonth = value);
                 }
               },
             ),
           ),
-          // Список транзакцій
           Expanded(
             child: filteredTransactions.isEmpty
                 ? const Center(child: Text('Немає транзакцій'))
                 : ListView.builder(
               itemCount: filteredTransactions.length,
               itemBuilder: (context, index) {
-                TransactionModel tx = filteredTransactions[index];
+                final tx = filteredTransactions[index];
                 return Dismissible(
                   key: Key(tx.id),
                   direction: DismissDirection.endToStart,
@@ -64,10 +61,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: const Icon(Icons.delete, color: Colors.white),
                   ),
-                  onDismissed: (direction) {
-                    Provider.of<TransactionProvider>(context, listen: false)
-                        .deleteTransaction(
-                      transactionProvider.transactions.indexOf(tx),
+                  onDismissed: (_) async {
+                    await Provider.of<TransactionProvider>(context, listen: false)
+                        .deleteTransactionById(tx.id);
+                    await transactionProvider.loadTransactions();
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Транзакцію видалено')),
                     );
                   },
                   child: ListTile(
@@ -75,9 +75,16 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       child: Text('${tx.amount.toInt()}'),
                     ),
                     title: Text(tx.title),
-                    subtitle: Text(
-                      '${tx.date.toLocal().toString().split(' ')[0]}',
-                    ),
+                    subtitle: Text(DateFormat.yMMMd('uk').format(tx.date)),
+                    onTap: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => EditTransactionScreen(transaction: tx),
+                        ),
+                      );
+                      await transactionProvider.loadTransactions();
+                    },
                   ),
                 );
               },
@@ -88,7 +95,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     );
   }
 
-  // Допоміжна функція для назв місяців
   String _monthName(int monthNumber) {
     const months = [
       'Січень', 'Лютий', 'Березень', 'Квітень', 'Травень', 'Червень',

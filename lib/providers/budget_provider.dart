@@ -7,21 +7,41 @@ class BudgetProvider with ChangeNotifier {
   final Box<Budget> _budgetBox = Hive.box<Budget>('budgets');
   List<TransactionModel> _externalTransactions = [];
 
-  List<Budget> get budgets => _budgetBox.values.toList(); // живий доступ
+  List<Budget> get budgets => _budgetBox.values.toList();
 
+  /// 🔄 Оновлення транзакцій для обчислення витрат
   void updateTransactions(List<TransactionModel> transactions) {
     _externalTransactions = transactions;
     notifyListeners();
   }
 
-  void addBudget(Budget budget) async {
+  Future<void> addBudget(Budget budget) async {
     await _budgetBox.put(budget.id, budget);
     notifyListeners();
   }
 
-  void deleteBudget(Budget budget) async {
-    await _budgetBox.delete(budget.id); // ✅ ключ - це id
-    notifyListeners(); // 🔁 оновлює екран
+  Future<void> deleteBudget(Budget budget) async {
+    await _budgetBox.delete(budget.id);
+    notifyListeners();
+  }
+
+  /// ✅ Обнулення бюджету при новому місяці
+  Future<void> resetBudgetsIfNeeded() async {
+    final now = DateTime.now();
+
+    for (var budget in _budgetBox.values) {
+      final lastReset = budget.lastReset;
+      final shouldReset = lastReset == null ||
+          (lastReset.month != now.month || lastReset.year != now.year);
+
+      if (shouldReset) {
+        budget.lastReset = now;
+        await budget.save();
+        // (не обнуляємо витрати напряму, бо вони обчислюються динамічно)
+      }
+    }
+
+    notifyListeners();
   }
 
   double getSpentAmountFor(Budget budget) {
@@ -44,4 +64,23 @@ class BudgetProvider with ChangeNotifier {
   void refresh() {
     notifyListeners();
   }
+
+  /// 🔁 При редагуванні транзакції — просто перераховуємо бюджети
+  void adjustBudgetsOnTransactionEdit(TransactionModel oldTx, TransactionModel newTx) {
+    // Витрати рахуються через _externalTransactions, тому просто оновлюємо UI
+    notifyListeners();
+  }
+
+  Future<void> updateBudget(Budget updatedBudget) async {
+    final keyToUpdate = _budgetBox.keys.firstWhere(
+          (key) => _budgetBox.get(key)?.id == updatedBudget.id,
+      orElse: () => null,
+    );
+
+    if (keyToUpdate != null) {
+      await _budgetBox.put(keyToUpdate, updatedBudget);
+      notifyListeners(); // ⏱️ оновлює залишок, статус, ліміт, UI тощо
+    }
+  }
+
 }

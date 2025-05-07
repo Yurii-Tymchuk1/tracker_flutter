@@ -3,13 +3,13 @@ import 'transaction.dart';
 
 part 'budget.g.dart';
 
-@HiveType(typeId: 0)
+@HiveType(typeId: 1) // ✅ змінено з 0 на 1
 class Budget extends HiveObject {
   @HiveField(0)
   String id;
 
   @HiveField(1)
-  String? category; // Категорія може бути null для загального бюджету
+  String? category;
 
   @HiveField(2)
   double maxAmount;
@@ -18,7 +18,10 @@ class Budget extends HiveObject {
   String currency;
 
   @HiveField(4)
-  bool isGeneral; // Додано: чи це загальний бюджет
+  bool isGeneral;
+
+  @HiveField(5)
+  DateTime? lastReset;
 
   Budget({
     required this.id,
@@ -29,17 +32,13 @@ class Budget extends HiveObject {
   });
 
   double getSpentAmount(List<TransactionModel> transactions) {
-    return transactions
-        .where((tx) {
+    return transactions.where((tx) {
       if (isGeneral) {
-        // Загальний бюджет ➔ всі транзакції тієї ж валюти
         return tx.currency == currency;
       } else {
-        // Бюджет на категорію ➔ транзакції тієї ж валюти і категорії
         return tx.category == category && tx.currency == currency;
       }
-    })
-        .fold(0.0, (sum, tx) => sum + tx.amount);
+    }).fold(0.0, (sum, tx) => sum + tx.amount);
   }
 
   double getRemainingAmount(List<TransactionModel> transactions) {

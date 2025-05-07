@@ -26,7 +26,8 @@ class _IncomeScreenState extends State<IncomeScreen> {
   Widget build(BuildContext context) {
     final incomeProvider = context.watch<IncomeProvider>();
     final allIncomes = incomeProvider.incomes;
-    final filteredIncomes = allIncomes.where((income) => income.date.month == _selectedMonth).toList();
+    final filteredIncomes =
+    allIncomes.where((income) => income.date.month == _selectedMonth).toList();
 
     final totalMonthly = filteredIncomes.fold(0.0, (sum, i) => sum + i.amount);
     final totalAll = allIncomes.fold(0.0, (sum, i) => sum + i.amount);
@@ -42,9 +43,10 @@ class _IncomeScreenState extends State<IncomeScreen> {
               decoration: const InputDecoration(labelText: 'Оберіть місяць'),
               items: List.generate(12, (index) {
                 final month = index + 1;
+                final monthName = DateFormat.MMMM('uk').format(DateTime(2020, month));
                 return DropdownMenuItem(
                   value: month,
-                  child: Text(DateFormat.MMMM('uk').format(DateTime(0, month))),
+                  child: Text(monthName[0].toUpperCase() + monthName.substring(1)),
                 );
               }),
               onChanged: (value) {
@@ -80,7 +82,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
                 return ListTile(
                   title: Text(income.title),
                   subtitle: Text(
-                    '${income.amount.toStringAsFixed(2)} ${income.currency} — ${income.date.toLocal().toString().split(' ')[0]}',
+                    '${income.amount.toStringAsFixed(2)} ${income.currency} — ${DateFormat.yMMMd('uk').format(income.date)}',
                   ),
                   onTap: () async {
                     await Navigator.push(
