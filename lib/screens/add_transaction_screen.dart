@@ -8,6 +8,7 @@ import '../providers/transaction_provider.dart';
 import '../providers/budget_provider.dart';
 import '../providers/category_provider.dart';
 import 'package:intl/intl.dart';
+import '../data/models/category.dart';
 
 class AddTransactionScreen extends StatefulWidget {
   const AddTransactionScreen({super.key});
@@ -154,7 +155,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   Widget build(BuildContext context) {
     final budgetProvider = context.watch<BudgetProvider>();
     final categoryProvider = context.watch<CategoryProvider>();
-    final categories = categoryProvider.categories.map((c) => c.name).toList();
+    final categories = categoryProvider
+        .getCategoriesByType(CategoryType.expense)
+        .map((c) => c.name)
+        .toList();
 
     final currencyItems = _currencySymbols.keys.toSet().map((code) {
       return DropdownMenuItem(

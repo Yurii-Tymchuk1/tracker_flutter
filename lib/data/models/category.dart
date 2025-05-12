@@ -2,7 +2,7 @@ import 'package:hive/hive.dart';
 
 part 'category.g.dart';
 
-@HiveType(typeId: 3)
+@HiveType(typeId: 5) // 👈 окремий typeId для enum
 enum CategoryType {
   @HiveField(0)
   expense,
@@ -22,9 +22,15 @@ class CategoryModel extends HiveObject {
   @HiveField(2)
   final CategoryType type;
 
+  @HiveField(3)
+  final int color; // зберігається як int (наприклад, Colors.red.value)
+
+
   CategoryModel({
     required this.id,
     required this.name,
     required this.type,
+    required this.color,
   });
+
 }

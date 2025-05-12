@@ -13,6 +13,7 @@ class CategoryScreen extends StatefulWidget {
 class _CategoryScreenState extends State<CategoryScreen> {
   CategoryType _selectedType = CategoryType.expense;
   final TextEditingController _controller = TextEditingController();
+  Color _selectedColor = Colors.blue; // 🔹 Початковий колір
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +27,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
           ToggleButtons(
             isSelected: [
               _selectedType == CategoryType.expense,
-              _selectedType == CategoryType.income,
+              _selectedType == CategoryType.income
             ],
             onPressed: (index) {
               setState(() {
@@ -46,35 +47,45 @@ class _CategoryScreenState extends State<CategoryScreen> {
           ),
           const SizedBox(height: 10),
           Expanded(
-            child: categories.isEmpty
-                ? const Center(child: Text('Немає категорій'))
-                : ListView.builder(
+            child: ListView.builder(
               itemCount: categories.length,
               itemBuilder: (_, index) {
                 final cat = categories[index];
                 return ListTile(
+                  leading: CircleAvatar(backgroundColor: Color(cat.color)),
                   title: Text(cat.name),
                   trailing: IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () =>
-                        categoryProvider.deleteCategory(cat.id),
+                    onPressed: () => categoryProvider.deleteCategory(cat.id),
                   ),
                 );
               },
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
+            padding: const EdgeInsets.all(8),
+            child: Column(
               children: [
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    decoration: const InputDecoration(
-                      labelText: 'Нова категорія',
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _controller,
+                        decoration: const InputDecoration(hintText: 'Нова категорія'),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () => _pickColor(context),
+                      child: CircleAvatar(
+                        backgroundColor: _selectedColor,
+                        radius: 18,
+                        child: const Icon(Icons.color_lens, color: Colors.white, size: 18),
+                      ),
+                    ),
+                  ],
                 ),
+                const SizedBox(height: 8),
                 ElevatedButton(
                   onPressed: () {
                     final name = _controller.text.trim();
@@ -83,6 +94,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                         id: DateTime.now().millisecondsSinceEpoch.toString(),
                         name: name,
                         type: _selectedType,
+                        color: _selectedColor.value, // 💾 Зберігаємо як int
                       );
                       categoryProvider.addCategory(newCategory);
                       _controller.clear();
@@ -96,6 +108,42 @@ class _CategoryScreenState extends State<CategoryScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _pickColor(BuildContext context) async {
+    final Color? picked = await showDialog<Color>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Оберіть колір'),
+        content: Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            Colors.blue,
+            Colors.green,
+            Colors.orange,
+            Colors.red,
+            Colors.purple,
+            Colors.teal,
+            Colors.brown,
+            Colors.indigo,
+            Colors.pink,
+            Colors.grey,
+          ].map((color) {
+            return GestureDetector(
+              onTap: () => Navigator.of(context).pop(color),
+              child: CircleAvatar(backgroundColor: color),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+
+    if (picked != null) {
+      setState(() {
+        _selectedColor = picked;
+      });
+    }
   }
 
   @override

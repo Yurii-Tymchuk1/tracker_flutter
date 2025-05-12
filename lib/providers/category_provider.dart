@@ -29,10 +29,48 @@ class CategoryProvider with ChangeNotifier {
   Future<void> initializeDefaultCategories() async {
     if (_categoryBox.isEmpty) {
       final defaultCategories = [
-        CategoryModel(id: '1', name: 'Продукти', type: CategoryType.expense),
-        CategoryModel(id: '2', name: 'Транспорт', type: CategoryType.expense),
-        CategoryModel(id: '3', name: 'Зарплата', type: CategoryType.income),
-        CategoryModel(id: '4', name: 'Фріланс', type: CategoryType.income),
+        CategoryModel(
+          id: '1',
+          name: 'Продукти',
+          type: CategoryType.expense,
+          color: Colors.red.value,
+        ),
+        CategoryModel(
+          id: '2',
+          name: 'Транспорт',
+          type: CategoryType.expense,
+          color: Colors.blue.value,
+        ),
+        CategoryModel(
+          id: '3',
+          name: 'Комуналка',
+          type: CategoryType.expense,
+          color: Colors.orange.value,
+        ),
+        CategoryModel(
+          id: '4',
+          name: 'Інше',
+          type: CategoryType.expense,
+          color: Colors.grey.value,
+        ),
+        CategoryModel(
+          id: '5',
+          name: 'Зарплата',
+          type: CategoryType.income,
+          color: Colors.green.value,
+        ),
+        CategoryModel(
+          id: '6',
+          name: 'Фріланс',
+          type: CategoryType.income,
+          color: Colors.teal.value,
+        ),
+        CategoryModel(
+          id: '7',
+          name: 'Подарунок',
+          type: CategoryType.income,
+          color: Colors.purple.value,
+        ),
       ];
 
       for (var cat in defaultCategories) {

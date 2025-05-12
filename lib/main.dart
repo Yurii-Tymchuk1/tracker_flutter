@@ -19,20 +19,26 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
 
-  // 🔥 ВАЖЛИВО: видалити всі box'и, які могли мати старі typeId
-  //await Hive.deleteBoxFromDisk('income_categories');
+  // 🔥 Видалити тільки при оновленні структури box'ів
+  //await Hive.deleteBoxFromDisk('categories'); // 🧼 ПОТІМ МОЖНА ВИДАЛИТИ
 
   // ✅ Реєстрація адаптерів
   Hive.registerAdapter(TransactionModelAdapter());
   Hive.registerAdapter(BudgetAdapter());
   Hive.registerAdapter(CategoryModelAdapter());
   Hive.registerAdapter(IncomeModelAdapter());
+  Hive.registerAdapter(CategoryTypeAdapter()); // 👈 ДОДАЙ ЦЕ
+
 
   // ✅ Відкриття Box'ів
   await Hive.openBox<TransactionModel>('transactions');
   await Hive.openBox<Budget>('budgets');
   await Hive.openBox<CategoryModel>('categories');
   await Hive.openBox<IncomeModel>('incomes');
+
+  // ✅ Ініціалізація дефолтних категорій (один раз при запуску)
+  final categoryProvider = CategoryProvider();
+  await categoryProvider.initializeDefaultCategories(); // 🔁 ПОТРІБНО ЛИШЕ ОДИН РАЗ
 
   // ✅ Локалізація
   await initializeDateFormatting('uk', null);
@@ -64,6 +70,7 @@ class TrackerApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) {
             final provider = CategoryProvider();
+            // 🟡 МОЖНА ВИДАЛИТИ, якщо вже викликано в main()
             provider.initializeDefaultCategories();
             return provider;
           },

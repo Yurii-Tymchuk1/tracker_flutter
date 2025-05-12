@@ -20,19 +20,22 @@ class CategoryModelAdapter extends TypeAdapter<CategoryModel> {
       id: fields[0] as String,
       name: fields[1] as String,
       type: fields[2] as CategoryType,
+      color: fields[3] as int,
     );
   }
 
   @override
   void write(BinaryWriter writer, CategoryModel obj) {
     writer
-      ..writeByte(3)
+      ..writeByte(4)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
       ..write(obj.name)
       ..writeByte(2)
-      ..write(obj.type);
+      ..write(obj.type)
+      ..writeByte(3)
+      ..write(obj.color);
   }
 
   @override
@@ -48,7 +51,7 @@ class CategoryModelAdapter extends TypeAdapter<CategoryModel> {
 
 class CategoryTypeAdapter extends TypeAdapter<CategoryType> {
   @override
-  final int typeId = 3;
+  final int typeId = 5;
 
   @override
   CategoryType read(BinaryReader reader) {
