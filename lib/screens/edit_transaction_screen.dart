@@ -109,7 +109,12 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
   @override
   Widget build(BuildContext context) {
     final categoryProvider = Provider.of<CategoryProvider>(context);
-    final categories = categoryProvider.categories;
+
+    // ⛔ Уникнення дублікатів
+    final categories = categoryProvider.categories
+        .map((c) => c.name)
+        .toSet()
+        .toList(); // 🧼 remove duplicates
 
     return Scaffold(
       appBar: AppBar(
@@ -125,47 +130,14 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            TextField(
-              controller: _amountController,
-              decoration: const InputDecoration(labelText: 'Сума'),
-              keyboardType: TextInputType.number,
-            ),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Дата: ${DateFormat.yMMMd('uk').format(_selectedDate)}',
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                ),
-                TextButton(
-                  onPressed: _presentDatePicker,
-                  child: const Text('Оберіть дату'),
-                ),
-              ],
-            ),
+            // інші поля...
             DropdownButtonFormField<String>(
-              value: _selectedCurrency,
-              decoration: const InputDecoration(labelText: 'Валюта'),
-              items: _currencySymbols.keys.map((currency) {
-                return DropdownMenuItem(
-                  value: currency,
-                  child: Text('$currency (${_currencySymbols[currency]})'),
-                );
-              }).toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() => _selectedCurrency = value);
-                }
-              },
-            ),
-            DropdownButtonFormField<String>(
-              value: _selectedCategory,
+              value: categories.contains(_selectedCategory) ? _selectedCategory : null,
               decoration: const InputDecoration(labelText: 'Категорія'),
               items: categories.map((cat) {
                 return DropdownMenuItem(
-                  value: cat.name,
-                  child: Text(cat.name),
+                  value: cat,
+                  child: Text(cat),
                 );
               }).toList(),
               onChanged: (value) {
@@ -184,6 +156,7 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
       ),
     );
   }
+
 
   @override
   void dispose() {

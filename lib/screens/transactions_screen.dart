@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../data/models/transaction.dart';
 import '../providers/transaction_provider.dart';
+import '../providers/category_provider.dart';
 import 'edit_transaction_screen.dart';
 import 'package:intl/intl.dart';
+import '../data/models/category.dart';
+
 
 class TransactionsScreen extends StatefulWidget {
   const TransactionsScreen({Key? key}) : super(key: key);
@@ -18,11 +21,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   @override
   Widget build(BuildContext context) {
     final transactionProvider = Provider.of<TransactionProvider>(context);
+    final categoryProvider = Provider.of<CategoryProvider>(context);
     final transactions = transactionProvider.transactions;
 
-    final filteredTransactions = transactions.where((tx) {
-      return tx.date.month == _selectedMonth;
-    }).toList();
+    final filteredTransactions = transactions
+        .where((tx) => tx.date.month == _selectedMonth)
+        .toList();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Транзакції')),
@@ -52,6 +56,21 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               itemCount: filteredTransactions.length,
               itemBuilder: (context, index) {
                 final tx = filteredTransactions[index];
+                final category = categoryProvider.categories.firstWhere(
+                      (c) => c.name == tx.category,
+                  orElse: () => CategoryModel(
+                    id: 'unknown',
+                    name: tx.category,
+                    type: CategoryType.expense,
+                    color: Colors.grey.value,
+                  ),
+                );
+
+
+                final color = category != null
+                    ? Color(category.color)
+                    : Colors.grey.shade400;
+
                 return Dismissible(
                   key: Key(tx.id),
                   direction: DismissDirection.endToStart,
@@ -72,10 +91,21 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   },
                   child: ListTile(
                     leading: CircleAvatar(
-                      child: Text('${tx.amount.toInt()}'),
+                      backgroundColor: color,
+                      child: Text(
+                        tx.amount.toInt().toString(),
+                        style: const TextStyle(color: Colors.white),
+                      ),
                     ),
-                    title: Text(tx.title),
-                    subtitle: Text(DateFormat.yMMMd('uk').format(tx.date)),
+                    title: Text(tx.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text(
+                      '${DateFormat.yMMMd('uk').format(tx.date)} · ${tx.category}',
+                      style: const TextStyle(fontStyle: FontStyle.italic),
+                    ),
+                    trailing: Text(
+                      '${tx.amount.toStringAsFixed(2)} ${tx.currency}',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     onTap: () async {
                       await Navigator.push(
                         context,

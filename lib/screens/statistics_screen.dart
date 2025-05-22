@@ -5,6 +5,9 @@ import 'package:intl/intl.dart';
 
 import '../providers/transaction_provider.dart';
 import '../providers/income_provider.dart';
+import '../providers/category_provider.dart';
+import '../providers/settings_provider.dart';
+import '../data/models/category.dart';
 import '../data/models/transaction.dart';
 import '../data/models/income.dart';
 
@@ -24,8 +27,12 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final txProvider = Provider.of<TransactionProvider>(context);
-    final incomeProvider = Provider.of<IncomeProvider>(context);
+    final txProvider = context.watch<TransactionProvider>();
+    final incomeProvider = context.watch<IncomeProvider>();
+    final categoryProvider = context.watch<CategoryProvider>();
+    final settingsProvider = context.watch<SettingsProvider>();
+    final settings = context.watch<SettingsProvider>(); // 🟢 потрібна змінна для convert()
+    final baseCurrency = settingsProvider.baseCurrency;
 
     bool isSamePeriod(DateTime date) {
       switch (_selectedPeriod) {
@@ -45,75 +52,101 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       }
     }
 
-    final List items = _showExpenses
+    final items = _showExpenses
         ? txProvider.transactions.where((tx) => isSamePeriod(tx.date)).toList()
         : incomeProvider.incomes.where((inc) => isSamePeriod(inc.date)).toList();
 
-    final total = items.fold(0.0, (sum, tx) => sum + (tx as dynamic).amount);
-
     final Map<String, double> categoryTotals = {};
-    for (var tx in items) {
-      final dynamic data = tx;
-      categoryTotals.update(
-        data.category,
-            (v) => v + data.amount,
-        ifAbsent: () => data.amount,
-      );
+    final Map<String, int> categoryColors = {};
+
+    double total = 0.0;
+
+    for (var item in items) {
+      if (_showExpenses) {
+        final tx = item as TransactionModel;
+        final amountConverted = settings.convert(tx.amount, tx.currency);
+        total += amountConverted;
+
+        categoryTotals.update(
+          tx.category,
+              (prev) => prev + amountConverted,
+          ifAbsent: () => amountConverted,
+        );
+
+        final cat = categoryProvider.categories.firstWhere(
+              (c) => c.name == tx.category,
+          orElse: () => CategoryModel(
+            id: 'unknown',
+            name: tx.category,
+            type: CategoryType.expense,
+            color: Colors.grey.value,
+          ),
+        );
+        categoryColors[tx.category] = cat.color;
+      } else {
+        final inc = item as IncomeModel;
+        final amountConverted = settings.convert(inc.amount, inc.currency);
+        total += amountConverted;
+
+        categoryTotals.update(
+          inc.category,
+              (prev) => prev + amountConverted,
+          ifAbsent: () => amountConverted,
+        );
+
+        final cat = categoryProvider.categories.firstWhere(
+              (c) => c.name == inc.category,
+          orElse: () => CategoryModel(
+            id: 'unknown',
+            name: inc.category,
+            type: CategoryType.income,
+            color: Colors.grey.value,
+          ),
+        );
+        categoryColors[inc.category] = cat.color;
+      }
     }
 
-    final colors = [
-      Colors.blue,
-      Colors.green,
-      Colors.orange,
-      Colors.red,
-      Colors.purple,
-      Colors.teal,
-    ];
-
     return Scaffold(
-      appBar: AppBar(title: const Text('Статистика')),
+      appBar: AppBar(
+        title: const Text('Статистика'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () => Navigator.pushNamed(context, '/settings'),
+          ),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // 🔁 Перемикач доходи/витрати
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 ChoiceChip(
                   label: const Text('Витрати'),
                   selected: _showExpenses,
-                  onSelected: (selected) => setState(() => _showExpenses = true),
+                  onSelected: (_) => setState(() => _showExpenses = true),
                 ),
                 const SizedBox(width: 10),
                 ChoiceChip(
                   label: const Text('Доходи'),
                   selected: !_showExpenses,
-                  onSelected: (selected) => setState(() => _showExpenses = false),
+                  onSelected: (_) => setState(() => _showExpenses = false),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-
-            // 📅 Період фільтрації
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: PeriodFilter.values.map((period) {
-                String label = period.toString().split('.').last;
-                switch (period) {
-                  case PeriodFilter.day:
-                    label = 'День';
-                    break;
-                  case PeriodFilter.week:
-                    label = 'Тиждень';
-                    break;
-                  case PeriodFilter.month:
-                    label = 'Місяць';
-                    break;
-                  case PeriodFilter.year:
-                    label = 'Рік';
-                    break;
-                }
+                final label = switch (period) {
+                  PeriodFilter.day => 'День',
+                  PeriodFilter.week => 'Тиждень',
+                  PeriodFilter.month => 'Місяць',
+                  PeriodFilter.year => 'Рік',
+                };
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: ChoiceChip(
@@ -125,60 +158,57 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               }).toList(),
             ),
             const SizedBox(height: 16),
-
-            // 📊 Діаграма та категорії
             Expanded(
-              child: Column(
+              child: categoryTotals.isEmpty
+                  ? const Center(child: Text('Немає даних для відображення'))
+                  : Column(
                 children: [
-                  if (categoryTotals.isEmpty)
-                    const Text('Немає даних для відображення')
-                  else ...[
-                    SizedBox(
-                      height: 200,
-                      child: PieChart(
-                        PieChartData(
-                          centerSpaceRadius: 40,
-                          sectionsSpace: 2,
-                          sections: categoryTotals.entries.toList().asMap().entries.map((entry) {
-                            final i = entry.key;
-                            final e = entry.value;
-                            return PieChartSectionData(
-                              value: e.value,
-                              color: colors[i % colors.length],
-                              title: '${(e.value / total * 100).toStringAsFixed(1)}%',
-                              radius: 80,
-                              titleStyle: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Загалом: ${total.toStringAsFixed(2)}',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 12),
-                    Expanded(
-                      child: ListView(
-                        children: categoryTotals.entries.map((e) {
-                          final index = categoryTotals.keys.toList().indexOf(e.key);
-                          return ListTile(
-                            leading: CircleAvatar(backgroundColor: colors[index % colors.length]),
-                            title: Text(e.key),
-                            trailing: Text('${e.value.toStringAsFixed(2)}'),
+                  SizedBox(
+                    height: 200,
+                    child: PieChart(
+                      PieChartData(
+                        centerSpaceRadius: 40,
+                        sectionsSpace: 2,
+                        sections: categoryTotals.entries.map((entry) {
+                          final color = Color(categoryColors[entry.key] ?? Colors.grey.value);
+                          return PieChartSectionData(
+                            value: entry.value,
+                            color: color,
+                            title: '${(entry.value / total * 100).toStringAsFixed(1)}%',
+                            radius: 80,
+                            titleStyle: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
                           );
                         }).toList(),
                       ),
                     ),
-                  ]
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Загалом: ${total.toStringAsFixed(2)} $baseCurrency',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: ListView(
+                      children: categoryTotals.entries.map((e) {
+                        final color = Color(categoryColors[e.key] ?? Colors.grey.value);
+                        return ListTile(
+                          leading: CircleAvatar(backgroundColor: color),
+                          title: Text(e.key),
+                          trailing: Text(
+                            '${e.value.toStringAsFixed(2)} $baseCurrency',
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
                 ],
               ),
-            )
+            ),
           ],
         ),
       ),

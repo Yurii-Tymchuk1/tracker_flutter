@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+
 import '../data/models/income.dart';
 import '../providers/income_provider.dart';
-import 'add_income_screen.dart';
+import '../providers/settings_provider.dart';
 import 'edit_income_screen.dart';
 
 class IncomeScreen extends StatefulWidget {
@@ -14,23 +15,28 @@ class IncomeScreen extends StatefulWidget {
 }
 
 class _IncomeScreenState extends State<IncomeScreen> {
-  late int _selectedMonth;
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedMonth = DateTime.now().month;
-  }
+  int _selectedMonth = DateTime.now().month;
 
   @override
   Widget build(BuildContext context) {
     final incomeProvider = context.watch<IncomeProvider>();
-    final allIncomes = incomeProvider.incomes;
-    final filteredIncomes =
-    allIncomes.where((income) => income.date.month == _selectedMonth).toList();
+    final settings = context.watch<SettingsProvider>();
+    final baseCurrency = settings.baseCurrency;
 
-    final totalMonthly = filteredIncomes.fold(0.0, (sum, i) => sum + i.amount);
-    final totalAll = allIncomes.fold(0.0, (sum, i) => sum + i.amount);
+    final allIncomes = incomeProvider.incomes;
+    final filteredIncomes = allIncomes
+        .where((income) => income.date.month == _selectedMonth)
+        .toList();
+
+    final totalMonthly = filteredIncomes.fold<double>(
+      0.0,
+          (sum, income) => sum + settings.convert(income.amount, income.currency),
+    );
+
+    final totalAll = allIncomes.fold<double>(
+      0.0,
+          (sum, income) => sum + settings.convert(income.amount, income.currency),
+    );
 
     return Scaffold(
       appBar: AppBar(title: const Text('Усі доходи')),
@@ -43,10 +49,9 @@ class _IncomeScreenState extends State<IncomeScreen> {
               decoration: const InputDecoration(labelText: 'Оберіть місяць'),
               items: List.generate(12, (index) {
                 final month = index + 1;
-                final monthName = DateFormat.MMMM('uk').format(DateTime(2020, month));
                 return DropdownMenuItem(
                   value: month,
-                  child: Text(monthName[0].toUpperCase() + monthName.substring(1)),
+                  child: Text(DateFormat.MMMM('uk').format(DateTime(0, month))),
                 );
               }),
               onChanged: (value) {
@@ -62,11 +67,11 @@ class _IncomeScreenState extends State<IncomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Сума за місяць: ${totalMonthly.toStringAsFixed(2)}',
+                  'Сума за місяць: ${totalMonthly.toStringAsFixed(2)} $baseCurrency',
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 Text(
-                  'Загалом: ${totalAll.toStringAsFixed(2)}',
+                  'Загалом: ${totalAll.toStringAsFixed(2)} $baseCurrency',
                   style: const TextStyle(color: Colors.grey),
                 ),
               ],
@@ -80,33 +85,28 @@ class _IncomeScreenState extends State<IncomeScreen> {
               itemBuilder: (context, index) {
                 final income = filteredIncomes[index];
                 return ListTile(
+                  leading:
+                  const Icon(Icons.attach_money, color: Colors.green),
                   title: Text(income.title),
                   subtitle: Text(
                     '${income.amount.toStringAsFixed(2)} ${income.currency} — ${DateFormat.yMMMd('uk').format(income.date)}',
                   ),
-                  onTap: () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => EditIncomeScreen(income: income),
-                      ),
-                    );
-                    setState(() {}); // оновлення після редагування
-                  },
+                  trailing: IconButton(
+                    icon: const Icon(Icons.edit, color: Colors.blue),
+                    onPressed: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => EditIncomeScreen(income: income),
+                        ),
+                      );
+                    },
+                  ),
                 );
               },
             ),
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const AddIncomeScreen()),
-          );
-        },
-        child: const Icon(Icons.add),
       ),
     );
   }

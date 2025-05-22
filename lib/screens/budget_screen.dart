@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/budget_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../providers/category_provider.dart';
+import '../providers/settings_provider.dart';
 import '../data/models/budget.dart';
 
 class BudgetScreen extends StatelessWidget {
@@ -12,6 +13,7 @@ class BudgetScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final budgetProvider = Provider.of<BudgetProvider>(context);
     final budgets = budgetProvider.budgets;
+    final settings = Provider.of<SettingsProvider>(context, listen: false);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Бюджети')),
@@ -25,8 +27,6 @@ class BudgetScreen extends StatelessWidget {
           final remainingAmount = budgetProvider.getRemainingAmountFor(item);
           final exceeded = budgetProvider.isBudgetExceeded(item);
           final nearLimit = budgetProvider.isBudgetNearLimit(item);
-
-
 
           return ListTile(
             title: Text(
@@ -46,11 +46,10 @@ class BudgetScreen extends StatelessWidget {
                   ),
                 ),
                 if (nearLimit && !exceeded)
-                  Text(
+                  const Text(
                     'Увага: залишок майже вичерпано!',
-                    style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
                   ),
-
               ],
             ),
             trailing: Row(
@@ -104,8 +103,8 @@ class BudgetScreen extends StatelessWidget {
 
   void _showAddBudgetDialog(BuildContext context) {
     final _amountController = TextEditingController();
-    final List<String> _currencies = ['UAH', 'USD', 'EUR', 'PLN'];
-    String _selectedCurrency = _currencies.first;
+    final settings = Provider.of<SettingsProvider>(context, listen: false);
+    final _selectedCurrency = settings.baseCurrency;
 
     final categoryProvider = Provider.of<CategoryProvider>(context, listen: false);
     final categories = categoryProvider.categories.map((c) => c.name).toList();
@@ -148,21 +147,8 @@ class BudgetScreen extends StatelessWidget {
                 decoration: const InputDecoration(labelText: 'Максимальна сума'),
                 keyboardType: TextInputType.number,
               ),
-              DropdownButtonFormField<String>(
-                value: _currencies.contains(_selectedCurrency) ? _selectedCurrency : null,
-                decoration: const InputDecoration(labelText: 'Валюта'),
-                items: _currencies.map((currency) {
-                  return DropdownMenuItem(
-                    value: currency,
-                    child: Text(currency),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  if (value != null) {
-                    _selectedCurrency = value;
-                  }
-                },
-              ),
+              const SizedBox(height: 10),
+              Text('Валюта: $_selectedCurrency'),
             ],
           ),
           actions: [
@@ -179,7 +165,7 @@ class BudgetScreen extends StatelessWidget {
                 });
 
                 if (amount > 0 && !exists) {
-                  final updatedBudget = Budget(
+                  final newBudget = Budget(
                     id: DateTime.now().millisecondsSinceEpoch.toString(),
                     category: _isGeneral ? null : _selectedCategory,
                     maxAmount: amount,
@@ -187,7 +173,7 @@ class BudgetScreen extends StatelessWidget {
                     isGeneral: _isGeneral,
                   );
 
-                  budgetProvider.updateBudget(updatedBudget);
+                  budgetProvider.updateBudget(newBudget);
                   Navigator.of(ctx).pop();
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -274,7 +260,7 @@ class BudgetScreen extends StatelessWidget {
                   final existingBudgets = budgetProvider.budgets;
 
                   bool duplicateExists = existingBudgets.any((b) {
-                    if (b.id == budget.id) return false; // пропускаємо поточний бюджет
+                    if (b.id == budget.id) return false;
                     if (_isGeneral && b.isGeneral) return true;
                     if (!_isGeneral && b.category == _selectedCategory) return true;
                     return false;
@@ -297,8 +283,7 @@ class BudgetScreen extends StatelessWidget {
 
                   budgetProvider.addBudget(updatedBudget);
                   Navigator.of(ctx).pop();
-                }
-                else {
+                } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Некоректна сума!')),
                   );

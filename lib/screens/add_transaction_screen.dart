@@ -7,6 +7,7 @@ import '../data/models/budget.dart';
 import '../providers/transaction_provider.dart';
 import '../providers/budget_provider.dart';
 import '../providers/category_provider.dart';
+import '../providers/settings_provider.dart';
 import 'package:intl/intl.dart';
 import '../data/models/category.dart';
 
@@ -23,7 +24,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   final _amountController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
   String _selectedCategory = '';
-  String _selectedCurrency = 'UAH';
+  late String _selectedCurrency;
 
   final Map<String, String> _currencySymbols = {
     'UAH': '₴',
@@ -32,24 +33,15 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     'PLN': 'zł',
   };
 
-  late List<String> _currencies;
-
   @override
   void initState() {
     super.initState();
+    final settings = context.read<SettingsProvider>();
+    _selectedCurrency = settings.baseCurrency;
 
-    _currencies = _currencySymbols.keys.toList();
-
-    final categories = context.read<CategoryProvider>().categories;
+    final categories = context.read<CategoryProvider>().getCategoriesByType(CategoryType.expense);
     if (categories.isNotEmpty) {
       _selectedCategory = categories.first.name;
-
-      final budget = context.read<BudgetProvider>().budgets.firstWhereOrNull(
-            (b) => b.category == _selectedCategory && !b.isGeneral,
-      );
-      if (budget != null) {
-        _selectedCurrency = budget.currency;
-      }
     }
   }
 
@@ -64,11 +56,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     final transactionProvider = context.read<TransactionProvider>();
     final transactions = transactionProvider.transactions;
 
-    final Budget? categoryBudget = budgetProvider.budgets.firstWhereOrNull(
+    final categoryBudget = budgetProvider.budgets.firstWhereOrNull(
           (b) => b.category == _selectedCategory && !b.isGeneral && b.currency == _selectedCurrency,
     );
 
-    final Budget? generalBudget = budgetProvider.budgets.firstWhereOrNull(
+    final generalBudget = budgetProvider.budgets.firstWhereOrNull(
           (b) => b.isGeneral && b.currency == _selectedCurrency,
     );
 
@@ -137,39 +129,25 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 
   void _presentDatePicker() async {
-    final pickedDate = await showDatePicker(
+    final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
     );
 
-    if (pickedDate != null) {
-      setState(() {
-        _selectedDate = pickedDate;
-      });
+    if (picked != null) {
+      setState(() => _selectedDate = picked);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final budgetProvider = context.watch<BudgetProvider>();
     final categoryProvider = context.watch<CategoryProvider>();
     final categories = categoryProvider
         .getCategoriesByType(CategoryType.expense)
         .map((c) => c.name)
         .toList();
-
-    final currencyItems = _currencySymbols.keys.toSet().map((code) {
-      return DropdownMenuItem(
-        value: code,
-        child: Text('$code (${_currencySymbols[code]})'),
-      );
-    }).toList();
-
-    final validCurrencyValue = _currencySymbols.keys.contains(_selectedCurrency)
-        ? _selectedCurrency
-        : null;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Додати транзакцію')),
@@ -208,37 +186,14 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 value: categories.contains(_selectedCategory) ? _selectedCategory : null,
                 decoration: const InputDecoration(labelText: 'Категорія'),
                 items: categories.map((cat) {
-                  return DropdownMenuItem(
-                    value: cat,
-                    child: Text(cat),
-                  );
+                  return DropdownMenuItem(value: cat, child: Text(cat));
                 }).toList(),
                 onChanged: (value) {
                   if (value != null) {
-                    setState(() {
-                      _selectedCategory = value;
-                      final budget = budgetProvider.budgets.firstWhereOrNull(
-                            (b) => b.category == _selectedCategory && !b.isGeneral,
-                      );
-                      if (budget != null) {
-                        _selectedCurrency = budget.currency;
-                      }
-                    });
+                    setState(() => _selectedCategory = value);
                   }
                 },
                 validator: (value) => value == null || value.isEmpty ? 'Оберіть категорію' : null,
-              ),
-              DropdownButtonFormField<String>(
-                value: validCurrencyValue,
-                decoration: const InputDecoration(labelText: 'Валюта'),
-                items: currencyItems,
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() {
-                      _selectedCurrency = value;
-                    });
-                  }
-                },
               ),
               const SizedBox(height: 20),
               ElevatedButton(

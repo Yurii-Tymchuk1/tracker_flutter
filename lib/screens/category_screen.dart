@@ -13,7 +13,7 @@ class CategoryScreen extends StatefulWidget {
 class _CategoryScreenState extends State<CategoryScreen> {
   CategoryType _selectedType = CategoryType.expense;
   final TextEditingController _controller = TextEditingController();
-  Color _selectedColor = Colors.blue; // 🔹 Початковий колір
+  Color _selectedColor = Colors.blue;
 
   @override
   Widget build(BuildContext context) {
@@ -54,9 +54,18 @@ class _CategoryScreenState extends State<CategoryScreen> {
                 return ListTile(
                   leading: CircleAvatar(backgroundColor: Color(cat.color)),
                   title: Text(cat.name),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () => categoryProvider.deleteCategory(cat.id),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.blue),
+                        onPressed: () => _showEditDialog(context, cat),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => categoryProvider.deleteCategory(cat.id),
+                      ),
+                    ],
                   ),
                 );
               },
@@ -94,7 +103,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                         id: DateTime.now().millisecondsSinceEpoch.toString(),
                         name: name,
                         type: _selectedType,
-                        color: _selectedColor.value, // 💾 Зберігаємо як int
+                        color: _selectedColor.value,
                       );
                       categoryProvider.addCategory(newCategory);
                       _controller.clear();
@@ -110,7 +119,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
     );
   }
 
-  Future<void> _pickColor(BuildContext context) async {
+  Future<void> _pickColor(BuildContext context, [Function(Color)? onPicked]) async {
     final Color? picked = await showDialog<Color>(
       context: context,
       builder: (context) => AlertDialog(
@@ -140,10 +149,69 @@ class _CategoryScreenState extends State<CategoryScreen> {
     );
 
     if (picked != null) {
-      setState(() {
-        _selectedColor = picked;
-      });
+      if (onPicked != null) {
+        onPicked(picked);
+      } else {
+        setState(() => _selectedColor = picked);
+      }
     }
+  }
+
+  void _showEditDialog(BuildContext context, CategoryModel cat) {
+    final nameController = TextEditingController(text: cat.name);
+    Color tempColor = Color(cat.color);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Редагувати категорію'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: 'Назва'),
+            ),
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: () => _pickColor(context, (picked) {
+                setState(() {
+                  tempColor = picked;
+                });
+              }),
+              child: CircleAvatar(
+                backgroundColor: tempColor,
+                radius: 18,
+                child: const Icon(Icons.color_lens, color: Colors.white, size: 18),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Скасувати'),
+          ),
+          TextButton(
+            onPressed: () {
+              final name = nameController.text.trim();
+              if (name.isNotEmpty) {
+                final updated = CategoryModel(
+                  id: cat.id,
+                  name: name,
+                  type: cat.type,
+                  color: tempColor.value,
+                );
+                Provider.of<CategoryProvider>(context, listen: false)
+                    .updateCategory(updated);
+              }
+              Navigator.pop(ctx);
+            },
+            child: const Text('Зберегти'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override

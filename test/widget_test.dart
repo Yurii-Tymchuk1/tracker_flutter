@@ -9,11 +9,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:tracker/main.dart';
+import 'package:tracker/providers/settings_provider.dart';
 
 void main() {
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const TrackerApp());
+    final settingsProvider = SettingsProvider();
+    await settingsProvider.updateRates(); // якщо хочеш протестувати з актуальними курсами
+
+    await tester.pumpWidget(TrackerApp(settingsProvider: settingsProvider));
 
     // Verify that our counter starts at 0.
     expect(find.text('0'), findsOneWidget);

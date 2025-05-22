@@ -3,9 +3,10 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 
 import '../data/models/income.dart';
-import '../data/models/category.dart';
 import '../providers/income_provider.dart';
 import '../providers/category_provider.dart';
+import '../providers/settings_provider.dart';
+import '../data/models/category.dart';
 
 class AddIncomeScreen extends StatefulWidget {
   const AddIncomeScreen({super.key});
@@ -15,126 +16,110 @@ class AddIncomeScreen extends StatefulWidget {
 }
 
 class _AddIncomeScreenState extends State<AddIncomeScreen> {
-  final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
   String _selectedCurrency = 'UAH';
-  String? _selectedCategory;
+  String _selectedCategory = '';
 
-  final Map<String, String> _currencySymbols = {
-    'UAH': '₴',
-    'USD': '\$',
-    'EUR': '€',
-    'PLN': 'zł',
-  };
+  @override
+  void initState() {
+    super.initState();
 
-  List<String> get _currencies => _currencySymbols.keys.toList();
+    // ✅ Автоматична базова валюта
+    final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
+    _selectedCurrency = settingsProvider.baseCurrency;
 
-  void _submitData() {
-    if (!_formKey.currentState!.validate() || _selectedCategory == null) return;
-
-    final amount = double.tryParse(_amountController.text) ?? 0;
-    if (amount <= 0) return;
-
-    final income = IncomeModel(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      title: _selectedCategory!,
-      amount: amount,
-      date: _selectedDate,
-      currency: _selectedCurrency,
-      category: _selectedCategory!,
-    );
-
-    Provider.of<IncomeProvider>(context, listen: false).addIncome(income);
-    Navigator.pop(context);
+    final incomeCategories = Provider.of<CategoryProvider>(context, listen: false)
+        .getCategoriesByType(CategoryType.income);
+    if (incomeCategories.isNotEmpty) {
+      _selectedCategory = incomeCategories.first.name;
+    }
   }
 
   void _presentDatePicker() async {
-    final picked = await showDatePicker(
+    final pickedDate = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
     );
-    if (picked != null) {
-      setState(() => _selectedDate = picked);
+    if (pickedDate != null) {
+      setState(() => _selectedDate = pickedDate);
     }
+  }
+
+  void _submitData() {
+    final amount = double.tryParse(_amountController.text);
+    if (amount == null || amount <= 0 || _selectedCategory.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Введіть коректну суму та категорію')),
+      );
+      return;
+    }
+
+    final income = IncomeModel(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      amount: amount,
+      date: _selectedDate,
+      currency: _selectedCurrency, // ✅ Автоматична валюта
+      category: _selectedCategory,
+      title: _selectedCategory,
+    );
+
+    Provider.of<IncomeProvider>(context, listen: false).addIncome(income);
+    Navigator.of(context).pop();
   }
 
   @override
   Widget build(BuildContext context) {
-    final categoryProvider = Provider.of<CategoryProvider>(context);
-    final incomeCategories = categoryProvider.getCategoriesByType(CategoryType.income);
+    final incomeCategories =
+    Provider.of<CategoryProvider>(context).getCategoriesByType(CategoryType.income);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Додати дохід')),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              TextFormField(
-                controller: _amountController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Сума'),
-                validator: (value) => value!.isEmpty ? 'Введіть суму' : null,
-              ),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Дата: ${DateFormat.yMMMd('uk').format(_selectedDate)}',
-                      style: const TextStyle(fontSize: 16),
-                    ),
+        child: Column(
+          children: [
+            TextField(
+              controller: _amountController,
+              decoration: const InputDecoration(labelText: 'Сума'),
+              keyboardType: TextInputType.number,
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Дата: ${DateFormat.yMMMd('uk').format(_selectedDate)}',
+                    style: const TextStyle(fontSize: 16),
                   ),
-                  TextButton(
-                    onPressed: _presentDatePicker,
-                    child: const Text('Оберіть дату'),
-                  ),
-                ],
-              ),
-              DropdownButtonFormField<String>(
-                value: _selectedCurrency,
-                decoration: const InputDecoration(labelText: 'Валюта'),
-                items: _currencies.map((currency) {
-                  return DropdownMenuItem(
-                    value: currency,
-                    child: Text('$currency (${_currencySymbols[currency]})'),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() {
-                      _selectedCurrency = value;
-                    });
-                  }
-                },
-              ),
-              DropdownButtonFormField<String>(
-                value: _selectedCategory,
-                decoration: const InputDecoration(labelText: 'Категорія'),
-                items: incomeCategories.map((cat) {
-                  return DropdownMenuItem(
-                    value: cat.name,
-                    child: Text(cat.name),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedCategory = value;
-                  });
-                },
-                validator: (value) =>
-                value == null ? 'Оберіть категорію' : null,
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _submitData,
-                child: const Text('Додати'),
-              ),
-            ],
-          ),
+                ),
+                TextButton(
+                  onPressed: _presentDatePicker,
+                  child: const Text('Оберіть дату'),
+                ),
+              ],
+            ),
+            DropdownButtonFormField<String>(
+              value: _selectedCategory,
+              decoration: const InputDecoration(labelText: 'Категорія'),
+              items: incomeCategories.map((cat) {
+                return DropdownMenuItem(value: cat.name, child: Text(cat.name));
+              }).toList(),
+              onChanged: (val) {
+                if (val != null) {
+                  setState(() => _selectedCategory = val);
+                }
+              },
+            ),
+            const SizedBox(height: 20),
+            Text('Валюта: $_selectedCurrency', style: const TextStyle(fontSize: 16)),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _submitData,
+              child: const Text('Додати'),
+            ),
+          ],
         ),
       ),
     );
