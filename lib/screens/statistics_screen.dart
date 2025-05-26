@@ -20,6 +20,24 @@ class StatisticsScreen extends StatefulWidget {
   State<StatisticsScreen> createState() => _StatisticsScreenState();
 }
 
+class BottomCircleClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.lineTo(0, size.height - 100);
+    path.quadraticBezierTo(
+      size.width / 2, size.height,
+      size.width, size.height - 100,
+    );
+    path.lineTo(size.width, 0);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+}
+
 class _StatisticsScreenState extends State<StatisticsScreen> {
   bool _showExpenses = true;
   PeriodFilter _selectedPeriod = PeriodFilter.month;
@@ -31,7 +49,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     final incomeProvider = context.watch<IncomeProvider>();
     final categoryProvider = context.watch<CategoryProvider>();
     final settingsProvider = context.watch<SettingsProvider>();
-    final settings = context.watch<SettingsProvider>(); // 🟢 потрібна змінна для convert()
+    final settings = context.watch<SettingsProvider>();
     final baseCurrency = settingsProvider.baseCurrency;
 
     bool isSamePeriod(DateTime date) {
@@ -58,7 +76,6 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
 
     final Map<String, double> categoryTotals = {};
     final Map<String, int> categoryColors = {};
-
     double total = 0.0;
 
     for (var item in items) {
@@ -66,12 +83,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         final tx = item as TransactionModel;
         final amountConverted = settings.convert(tx.amount, tx.currency);
         total += amountConverted;
-
-        categoryTotals.update(
-          tx.category,
-              (prev) => prev + amountConverted,
-          ifAbsent: () => amountConverted,
-        );
+        categoryTotals.update(tx.category, (prev) => prev + amountConverted,
+            ifAbsent: () => amountConverted);
 
         final cat = categoryProvider.categories.firstWhere(
               (c) => c.name == tx.category,
@@ -87,12 +100,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         final inc = item as IncomeModel;
         final amountConverted = settings.convert(inc.amount, inc.currency);
         total += amountConverted;
-
-        categoryTotals.update(
-          inc.category,
-              (prev) => prev + amountConverted,
-          ifAbsent: () => amountConverted,
-        );
+        categoryTotals.update(inc.category, (prev) => prev + amountConverted,
+            ifAbsent: () => amountConverted);
 
         final cat = categoryProvider.categories.firstWhere(
               (c) => c.name == inc.category,
@@ -109,7 +118,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Статистика'),
+        title: const Text('Додаток'),
+        centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
@@ -117,100 +127,198 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+      body: Stack(
+        children: [
+          ClipPath(
+            clipper: BottomCircleClipper(),
+            child: Container(
+              height: 220,
+              color: const Color(0xFF04266F),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
               children: [
-                ChoiceChip(
-                  label: const Text('Витрати'),
-                  selected: _showExpenses,
-                  onSelected: (_) => setState(() => _showExpenses = true),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _showExpenses = true),
+                        child: Column(
+                          children: [
+                            Text(
+                              'ВИТРАТИ',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                                color: _showExpenses ? Colors.white : Colors.white70,
+                              ),
+                            ),
+                            if (_showExpenses)
+                              Container(
+                                margin: const EdgeInsets.only(top: 6),
+                                height: 2.5,
+                                width: 70,
+                                color: Colors.white,
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _showExpenses = false),
+                        child: Column(
+                          children: [
+                            Text(
+                              'ДОХІД',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                                color: !_showExpenses ? Colors.white : Colors.white70,
+                              ),
+                            ),
+                            if (!_showExpenses)
+                              Container(
+                                margin: const EdgeInsets.only(top: 6),
+                                height: 2.5,
+                                width: 70,
+                                color: Colors.white,
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 10),
-                ChoiceChip(
-                  label: const Text('Доходи'),
-                  selected: !_showExpenses,
-                  onSelected: (_) => setState(() => _showExpenses = false),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0D1B3F),
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 10,
+                          offset: Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: PeriodFilter.values.map((period) {
+                            final label = switch (period) {
+                              PeriodFilter.day => 'День',
+                              PeriodFilter.week => 'Тиждень',
+                              PeriodFilter.month => 'Місяць',
+                              PeriodFilter.year => 'Рік',
+                            };
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              child: ChoiceChip(
+                                label: Text(
+                                  label,
+                                  style: const TextStyle(color: Colors.white),
+                                ),
+                                selected: _selectedPeriod == period,
+                                selectedColor: Colors.blueAccent,
+                                backgroundColor: const Color(0xFF1A2B52),
+                                onSelected: (_) => setState(() => _selectedPeriod = period),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          height: 200,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              PieChart(
+                                PieChartData(
+                                  centerSpaceRadius: 50,
+                                  sectionsSpace: 2,
+                                  sections: categoryTotals.entries.map((entry) {
+                                    final color = Color(categoryColors[entry.key] ?? Colors.grey.value);
+                                    return PieChartSectionData(
+                                      value: entry.value,
+                                      color: color,
+                                      title: '',
+                                      radius: 80,
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                              Text(
+                                '${total.toStringAsFixed(2)} $baseCurrency',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: items.isEmpty
+                      ? const Center(child: Text('Немає транзакцій'))
+                      : ListView.builder(
+                    itemCount: items.length,
+                    itemBuilder: (context, index) {
+                      if (_showExpenses) {
+                        final tx = items[index] as TransactionModel;
+                        final color = Color(categoryColors[tx.category] ?? Colors.grey.value);
+                        final amount = settings.convert(tx.amount, tx.currency);
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: color,
+                          ),
+                          title: Text(tx.category),
+                          subtitle: Text(DateFormat.yMMMd('uk').format(tx.date)),
+                          trailing: Text(
+                            '${amount.toStringAsFixed(2)} $baseCurrency',
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        );
+                      } else {
+                        final inc = items[index] as IncomeModel;
+                        final color = Color(categoryColors[inc.category] ?? Colors.grey.value);
+                        final amount = settings.convert(inc.amount, inc.currency);
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: color,
+                            child: const Icon(Icons.add, color: Colors.white, size: 18),
+                          ),
+                          title: Text(inc.category),
+                          subtitle: Text(DateFormat.yMMMd('uk').format(inc.date)),
+                          trailing: Text(
+                            '${amount.toStringAsFixed(2)} $baseCurrency',
+                            style: const TextStyle(color: Colors.green),
+                          ),
+                        );
+                      }
+                    },
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: PeriodFilter.values.map((period) {
-                final label = switch (period) {
-                  PeriodFilter.day => 'День',
-                  PeriodFilter.week => 'Тиждень',
-                  PeriodFilter.month => 'Місяць',
-                  PeriodFilter.year => 'Рік',
-                };
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: ChoiceChip(
-                    label: Text(label),
-                    selected: _selectedPeriod == period,
-                    onSelected: (_) => setState(() => _selectedPeriod = period),
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: categoryTotals.isEmpty
-                  ? const Center(child: Text('Немає даних для відображення'))
-                  : Column(
-                children: [
-                  SizedBox(
-                    height: 200,
-                    child: PieChart(
-                      PieChartData(
-                        centerSpaceRadius: 40,
-                        sectionsSpace: 2,
-                        sections: categoryTotals.entries.map((entry) {
-                          final color = Color(categoryColors[entry.key] ?? Colors.grey.value);
-                          return PieChartSectionData(
-                            value: entry.value,
-                            color: color,
-                            title: '${(entry.value / total * 100).toStringAsFixed(1)}%',
-                            radius: 80,
-                            titleStyle: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Загалом: ${total.toStringAsFixed(2)} $baseCurrency',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: ListView(
-                      children: categoryTotals.entries.map((e) {
-                        final color = Color(categoryColors[e.key] ?? Colors.grey.value);
-                        return ListTile(
-                          leading: CircleAvatar(backgroundColor: color),
-                          title: Text(e.key),
-                          trailing: Text(
-                            '${e.value.toStringAsFixed(2)} $baseCurrency',
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

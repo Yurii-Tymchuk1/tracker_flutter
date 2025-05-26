@@ -21,6 +21,8 @@ import 'providers/category_provider.dart';
 import 'providers/income_provider.dart';
 import 'providers/settings_provider.dart';
 
+import 'core/app_theme.dart'; // ✅ підключаємо тему
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
@@ -84,7 +86,7 @@ class TrackerApp extends StatelessWidget {
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'Tracker',
-        theme: ThemeData(primarySwatch: Colors.blue),
+        theme: AppTheme.lightTheme, // ✅ глобальна тема
         initialRoute: '/',
         routes: {
           '/': (context) => const HomeScreen(),
