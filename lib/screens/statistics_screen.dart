@@ -132,6 +132,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           ClipPath(
             clipper: BottomCircleClipper(),
             child: Container(
+              width: double.infinity,
               height: 220,
               color: const Color(0xFF04266F),
             ),
@@ -140,7 +141,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                const SizedBox(height: 16),
+                const SizedBox(height: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -197,7 +198,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                   ],
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 4),
                   child: Container(
                     decoration: BoxDecoration(
                       color: const Color(0xFF0D1B3F),
@@ -213,8 +214,10 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          alignment: WrapAlignment.center,
                           children: PeriodFilter.values.map((period) {
                             final label = switch (period) {
                               PeriodFilter.day => 'День',
@@ -222,30 +225,46 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                               PeriodFilter.month => 'Місяць',
                               PeriodFilter.year => 'Рік',
                             };
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 4),
-                              child: ChoiceChip(
-                                label: Text(
-                                  label,
-                                  style: const TextStyle(color: Colors.white),
+                            final isSelected = _selectedPeriod == period;
+
+                            return ChoiceChip(
+                              label: Text(
+                                label,
+                                style: TextStyle(
+                                  color: isSelected ? Colors.white : Colors.white70,
                                 ),
-                                selected: _selectedPeriod == period,
-                                selectedColor: Colors.blueAccent,
-                                backgroundColor: const Color(0xFF1A2B52),
-                                onSelected: (_) => setState(() => _selectedPeriod = period),
                               ),
+                              selected: isSelected,
+                              selectedColor: Colors.blueAccent,
+                              backgroundColor: const Color(0xFF1A2B52),
+                              showCheckmark: false, // ❌ Вимикає галочку
+                              onSelected: (_) => setState(() => _selectedPeriod = period),
                             );
                           }).toList(),
                         ),
-                        const SizedBox(height: 16),
-                        SizedBox(
-                          height: 200,
+
+                        const SizedBox(height: 20), // трохи менше, щоб підняти
+                        Container(
+                          height: 240,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0D1B3F),
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black26,
+                                blurRadius: 10,
+                                offset: Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           child: Stack(
                             alignment: Alignment.center,
                             children: [
                               PieChart(
                                 PieChartData(
-                                  centerSpaceRadius: 50,
+                                  centerSpaceRadius: 60, // дирка
                                   sectionsSpace: 2,
                                   sections: categoryTotals.entries.map((entry) {
                                     final color = Color(categoryColors[entry.key] ?? Colors.grey.value);
@@ -253,7 +272,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                                       value: entry.value,
                                       color: color,
                                       title: '',
-                                      radius: 80,
+                                      radius: 60, // товщина бублика
                                     );
                                   }).toList(),
                                 ),
@@ -269,6 +288,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                             ],
                           ),
                         ),
+
                       ],
                     ),
                   ),
