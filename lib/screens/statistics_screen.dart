@@ -268,13 +268,22 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                                   sectionsSpace: 2,
                                   sections: categoryTotals.entries.map((entry) {
                                     final color = Color(categoryColors[entry.key] ?? Colors.grey.value);
+                                    final value = entry.value;
+                                    final percentage = (value / total * 100).toStringAsFixed(0);
+
                                     return PieChartSectionData(
-                                      value: entry.value,
+                                      value: value,
                                       color: color,
-                                      title: '',
-                                      radius: 60, // товщина бублика
+                                      title: '$percentage%', // 🟢 відсоток
+                                      radius: 60,
+                                      titleStyle: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     );
                                   }).toList(),
+
                                 ),
                               ),
                               Text(
@@ -299,40 +308,91 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                       ? const Center(child: Text('Немає транзакцій'))
                       : ListView.builder(
                     itemCount: items.length,
-                    itemBuilder: (context, index) {
-                      if (_showExpenses) {
-                        final tx = items[index] as TransactionModel;
-                        final color = Color(categoryColors[tx.category] ?? Colors.grey.value);
-                        final amount = settings.convert(tx.amount, tx.currency);
-                        return ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor: color,
-                          ),
-                          title: Text(tx.category),
-                          subtitle: Text(DateFormat.yMMMd('uk').format(tx.date)),
-                          trailing: Text(
-                            '${amount.toStringAsFixed(2)} $baseCurrency',
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                        );
-                      } else {
-                        final inc = items[index] as IncomeModel;
-                        final color = Color(categoryColors[inc.category] ?? Colors.grey.value);
-                        final amount = settings.convert(inc.amount, inc.currency);
-                        return ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor: color,
-                            child: const Icon(Icons.add, color: Colors.white, size: 18),
-                          ),
-                          title: Text(inc.category),
-                          subtitle: Text(DateFormat.yMMMd('uk').format(inc.date)),
-                          trailing: Text(
-                            '${amount.toStringAsFixed(2)} $baseCurrency',
-                            style: const TextStyle(color: Colors.green),
-                          ),
-                        );
+                      itemBuilder: (context, index) {
+                        if (_showExpenses) {
+                          final tx = items[index] as TransactionModel; // ✅ Необхідне оголошення
+                          final color = Color(categoryColors[tx.category] ?? Colors.grey.value);
+                          final amount = settings.convert(tx.amount, tx.currency);
+
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            child: Row(
+                              children: [
+                                CircleAvatar(backgroundColor: color, radius:17),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        tx.category,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.normal,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      Text(
+                                        DateFormat.yMMMMd('uk').format(tx.date),
+                                        style: const TextStyle(fontSize: 14, color: Colors.grey),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Text(
+                                  '${amount.toStringAsFixed(2)} $baseCurrency',
+                                  style: TextStyle(
+                                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                                    fontSize: 15,
+                                  ),
+                                )
+                              ],
+                            ),
+                          );
+                        } else {
+                          final inc = items[index] as IncomeModel;
+                          final color = Color(categoryColors[inc.category] ?? Colors.grey.value);
+                          final amount = settings.convert(inc.amount, inc.currency);
+
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            child: Row(
+                              children: [
+                                CircleAvatar(
+                                  backgroundColor: color,
+                                  radius: 17,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        inc.category,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.normal,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      Text(
+                                        DateFormat.yMMMMd('uk').format(inc.date),
+                                        style: const TextStyle(fontSize: 14, color: Colors.grey),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Text(
+                                  '${amount.toStringAsFixed(2)} $baseCurrency',
+                                  style: const TextStyle(
+                                    color: Colors.black, // чорний колір
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+
                       }
-                    },
                   ),
                 ),
               ],

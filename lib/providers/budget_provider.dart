@@ -79,8 +79,12 @@ class BudgetProvider with ChangeNotifier {
 
     if (keyToUpdate != null) {
       await _budgetBox.put(keyToUpdate, updatedBudget);
-      notifyListeners(); // ⏱️ оновлює залишок, статус, ліміт, UI тощо
+    } else {
+      await _budgetBox.put(updatedBudget.id, updatedBudget); // додавання
     }
+
+    notifyListeners(); // важливо для оновлення UI
   }
+
 
 }

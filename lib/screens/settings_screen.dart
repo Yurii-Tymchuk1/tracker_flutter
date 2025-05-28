@@ -82,6 +82,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.all(16),
         child: ListView(
           children: [
+            const Text('Користувач', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            if (_isEditing) ...[
+              TextField(
+                controller: _nameController,
+                decoration: const InputDecoration(labelText: 'Ваше імʼя або псевдонім'),
+              ),
+              TextField(
+                controller: _goalController,
+                decoration: const InputDecoration(labelText: 'Фінансова мета'),
+              ),
+            ] else ...[
+              Text(_nameController.text, style: const TextStyle(fontSize: 18)),
+              Text(_goalController.text, style: const TextStyle(color: Colors.grey)),
+              const SizedBox(height: 8),
+            ],
+            ElevatedButton(
+              onPressed: _toggleEditOrSave,
+              child: Text(_isEditing ? 'Зберегти' : 'Редагувати'),
+            ),
+            const SizedBox(height: 24),
+            const Divider(),
             const Text('Базова валюта', style: TextStyle(fontSize: 18)),
             const SizedBox(height: 8),
             DropdownButton<String>(
@@ -99,6 +121,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               }).toList(),
             ),
             const SizedBox(height: 24),
+            const Divider(),
+            const Text('Про додаток', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            const Text('Версія: v1.0.0'),
+            const Text('Збірка: stable'),
+            const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: () => _confirmAndClearData(context),
               icon: const Icon(Icons.delete_forever),
@@ -107,34 +135,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 backgroundColor: Colors.red,
                 foregroundColor: Colors.white,
               ),
-            ),
-            const Divider(),
-            const Text('Про додаток', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            const Text('Версія: v1.0.0'),
-            const Text('Збірка: stable'),
-            const Divider(height: 32),
-            const Text('Користувач', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-
-            if (_isEditing) ...[
-              TextField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Ваше імʼя або псевдонім'),
-              ),
-              TextField(
-                controller: _goalController,
-                decoration: const InputDecoration(labelText: 'Фінансова мета'),
-              ),
-            ] else ...[
-              Text(_nameController.text, style: const TextStyle(fontSize: 18)),
-              Text(_goalController.text, style: const TextStyle(color: Colors.grey)),
-              const SizedBox(height: 8),
-            ],
-
-            ElevatedButton(
-              onPressed: _toggleEditOrSave,
-              child: Text(_isEditing ? 'Зберегти' : 'Редагувати'),
             ),
           ],
         ),
