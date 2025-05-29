@@ -51,6 +51,18 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     final settingsProvider = context.watch<SettingsProvider>();
     final settings = context.watch<SettingsProvider>();
     final baseCurrency = settingsProvider.baseCurrency;
+    final totalExpenses = txProvider.transactions.fold<double>(
+      0.0,
+          (sum, tx) => sum + settings.convert(tx.amount, tx.currency),
+    );
+
+    final totalIncomes = incomeProvider.incomes.fold<double>(
+      0.0,
+          (sum, inc) => sum + settings.convert(inc.amount, inc.currency),
+    );
+
+    final netBalance = totalIncomes - totalExpenses;
+
 
     bool isSamePeriod(DateTime date) {
       switch (_selectedPeriod) {
@@ -118,7 +130,10 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Додаток'),
+        title: Text(
+          '${netBalance.toStringAsFixed(2)} $baseCurrency',
+          style: const TextStyle(fontSize: 22),
+        ),
         centerTitle: true,
         actions: [
           IconButton(
@@ -127,6 +142,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           ),
         ],
       ),
+
       body: Stack(
         children: [
           ClipPath(
@@ -380,17 +396,29 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                                     ],
                                   ),
                                 ),
-                                Text(
-                                  '${amount.toStringAsFixed(2)} $baseCurrency',
-                                  style: const TextStyle(
-                                    color: Colors.black, // чорний колір
-                                    fontSize: 15,
-                                  ),
+                                Column(
+                                  children: [
+                                    Text(
+                                      '${amount.toStringAsFixed(2)} $baseCurrency',
+                                      style: const TextStyle(color: Colors.black, fontSize: 15),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.edit, color: Colors.blue, size: 20),
+                                      onPressed: () {
+                                        Navigator.pushNamed(
+                                          context,
+                                          '/edit-income',
+                                          arguments: inc,
+                                        );
+                                      },
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
                           );
                         }
+
 
                       }
                   ),

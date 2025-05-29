@@ -21,7 +21,10 @@ import 'providers/category_provider.dart';
 import 'providers/income_provider.dart';
 import 'providers/settings_provider.dart';
 
-import 'core/app_theme.dart'; // ✅ підключаємо тему
+import 'core/app_theme.dart';
+import 'screens/edit_income_screen.dart'; // ⬅️ якщо ще не імпортовано
+import 'data/models/income.dart';         // ⬅️ для передачі моделі
+// ✅ підключаємо тему
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -94,7 +97,13 @@ class TrackerApp extends StatelessWidget {
           '/add-income': (context) => const AddIncomeScreen(),
           '/incomes': (context) => const IncomeScreen(),
           '/settings': (context) => const SettingsScreen(),
+
+          '/edit-income': (context) {
+            final income = ModalRoute.of(context)!.settings.arguments as IncomeModel;
+            return EditIncomeScreen(income: income);
+          },
         },
+
       ),
     );
   }

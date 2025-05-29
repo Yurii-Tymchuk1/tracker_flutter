@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 import '../data/models/income.dart';
 import '../providers/income_provider.dart';
 import '../providers/settings_provider.dart';
-import 'edit_income_screen.dart';
 
 class IncomeScreen extends StatefulWidget {
   const IncomeScreen({super.key});
@@ -85,23 +84,18 @@ class _IncomeScreenState extends State<IncomeScreen> {
               itemBuilder: (context, index) {
                 final income = filteredIncomes[index];
                 return ListTile(
-                  leading:
-                  const Icon(Icons.attach_money, color: Colors.green),
+                  leading: const Icon(Icons.attach_money, color: Colors.green),
                   title: Text(income.title),
                   subtitle: Text(
                     '${income.amount.toStringAsFixed(2)} ${income.currency} — ${DateFormat.yMMMd('uk').format(income.date)}',
                   ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.edit, color: Colors.blue),
-                    onPressed: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => EditIncomeScreen(income: income),
-                        ),
-                      );
-                    },
-                  ),
+                  onTap: () async {
+                    await Navigator.pushNamed(
+                      context,
+                      '/edit-income',
+                      arguments: income,
+                    );
+                  },
                 );
               },
             ),

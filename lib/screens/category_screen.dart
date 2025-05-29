@@ -73,46 +73,50 @@ class _CategoryScreenState extends State<CategoryScreen> {
           ),
           Padding(
             padding: const EdgeInsets.all(8),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _controller,
-                        decoration: const InputDecoration(hintText: 'Нова категорія'),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.only(bottom: 20), // 👈 відступ від кнопки "+"
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _controller,
+                          decoration: const InputDecoration(hintText: 'Нова категорія'),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: () => _pickColor(context),
-                      child: CircleAvatar(
-                        backgroundColor: _selectedColor,
-                        radius: 18,
-                        child: const Icon(Icons.color_lens, color: Colors.white, size: 18),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () => _pickColor(context),
+                        child: CircleAvatar(
+                          backgroundColor: _selectedColor,
+                          radius: 18,
+                          child: const Icon(Icons.color_lens, color: Colors.white, size: 18),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                ElevatedButton(
-                  onPressed: () {
-                    final name = _controller.text.trim();
-                    if (name.isNotEmpty) {
-                      final newCategory = CategoryModel(
-                        id: DateTime.now().millisecondsSinceEpoch.toString(),
-                        name: name,
-                        type: _selectedType,
-                        color: _selectedColor.value,
-                      );
-                      categoryProvider.addCategory(newCategory);
-                      _controller.clear();
-                    }
-                  },
-                  child: const Text('Додати'),
-                ),
-              ],
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  ElevatedButton(
+                    onPressed: () {
+                      final name = _controller.text.trim();
+                      if (name.isNotEmpty) {
+                        final newCategory = CategoryModel(
+                          id: DateTime.now().millisecondsSinceEpoch.toString(),
+                          name: name,
+                          type: _selectedType,
+                          color: _selectedColor.value,
+                        );
+                        categoryProvider.addCategory(newCategory);
+                        _controller.clear();
+                      }
+                    },
+                    child: const Text('Додати'),
+                  ),
+                ],
+              ),
             ),
+
           ),
         ],
       ),

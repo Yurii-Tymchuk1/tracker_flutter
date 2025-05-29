@@ -82,28 +82,60 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.all(16),
         child: ListView(
           children: [
-            const Text('Користувач', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            if (_isEditing) ...[
-              TextField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Ваше імʼя або псевдонім'),
+            // 🔷 Користувач
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ],
               ),
-              TextField(
-                controller: _goalController,
-                decoration: const InputDecoration(labelText: 'Фінансова мета'),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Користувач', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  if (_isEditing) ...[
+                    TextField(
+                      controller: _nameController,
+                      decoration: const InputDecoration(labelText: 'Ваше імʼя або псевдонім'),
+                    ),
+                    TextField(
+                      controller: _goalController,
+                      decoration: const InputDecoration(labelText: 'Фінансова мета'),
+                    ),
+                  ] else ...[
+                    Text(
+                      _nameController.text,
+                      style: const TextStyle(fontSize: 18),
+                    ),
+                    Text(
+                      _goalController.text,
+                      style: const TextStyle(fontSize: 16, color: Colors.grey),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      onPressed: _toggleEditOrSave,
+                      icon: Icon(_isEditing ? Icons.save : Icons.edit, color: Theme.of(context).primaryColor),
+                      label: Text(_isEditing ? 'Зберегти' : 'Редагувати'),
+                    ),
+                  ),
+                ],
               ),
-            ] else ...[
-              Text(_nameController.text, style: const TextStyle(fontSize: 18)),
-              Text(_goalController.text, style: const TextStyle(color: Colors.grey)),
-              const SizedBox(height: 8),
-            ],
-            ElevatedButton(
-              onPressed: _toggleEditOrSave,
-              child: Text(_isEditing ? 'Зберегти' : 'Редагувати'),
             ),
+
             const SizedBox(height: 24),
-            const Divider(),
+
+            // 🔷 Базова валюта
             const Text('Базова валюта', style: TextStyle(fontSize: 18)),
             const SizedBox(height: 8),
             DropdownButton<String>(
@@ -120,13 +152,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 );
               }).toList(),
             ),
-            const SizedBox(height: 24),
+
+            const SizedBox(height: 32),
             const Divider(),
+
+            // 🔷 Про додаток
             const Text('Про додаток', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             const Text('Версія: v1.0.0'),
             const Text('Збірка: stable'),
-            const SizedBox(height: 24),
+
+            const SizedBox(height: 32),
+
+            // 🔷 Очистити всі дані
             ElevatedButton.icon(
               onPressed: () => _confirmAndClearData(context),
               icon: const Icon(Icons.delete_forever),

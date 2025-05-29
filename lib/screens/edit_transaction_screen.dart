@@ -4,7 +4,6 @@ import '../data/models/transaction.dart';
 import '../providers/transaction_provider.dart';
 import '../providers/budget_provider.dart';
 import '../providers/category_provider.dart';
-import 'package:intl/intl.dart';
 
 class EditTransactionScreen extends StatefulWidget {
   final TransactionModel transaction;
@@ -16,24 +15,17 @@ class EditTransactionScreen extends StatefulWidget {
 }
 
 class _EditTransactionScreenState extends State<EditTransactionScreen> {
+  late TextEditingController _titleController;
   late TextEditingController _amountController;
   late DateTime _selectedDate;
-  late String _selectedCurrency;
   late String _selectedCategory;
-
-  final Map<String, String> _currencySymbols = {
-    'UAH': '₴',
-    'USD': '\$',
-    'EUR': '€',
-    'PLN': 'zł',
-  };
 
   @override
   void initState() {
     super.initState();
+    _titleController = TextEditingController(text: widget.transaction.title);
     _amountController = TextEditingController(text: widget.transaction.amount.toString());
     _selectedDate = widget.transaction.date;
-    _selectedCurrency = widget.transaction.currency;
     _selectedCategory = widget.transaction.category;
   }
 
@@ -51,20 +43,20 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
 
   Future<void> _saveTransaction() async {
     final amount = double.tryParse(_amountController.text) ?? widget.transaction.amount;
+    final title = _titleController.text.trim();
 
     final updatedTransaction = widget.transaction.copyWith(
+      title: title,
       amount: amount,
       date: _selectedDate,
-      currency: _selectedCurrency,
       category: _selectedCategory,
-      title: _selectedCategory, // використовуємо категорію як назву
     );
 
     final txProvider = Provider.of<TransactionProvider>(context, listen: false);
     final budgetProvider = Provider.of<BudgetProvider>(context, listen: false);
 
     await txProvider.updateTransaction(updatedTransaction, budgetProvider);
-    budgetProvider.updateTransactions(txProvider.transactions); // 🔁 оновлення бюджету
+    budgetProvider.updateTransactions(txProvider.transactions);
 
     if (mounted) Navigator.of(context).pop();
   }
@@ -89,11 +81,9 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
     );
 
     if (confirm == true) {
-      await Provider.of<TransactionProvider>(context, listen: false)
-          .deleteTransactionById(widget.transaction.id);
-
-      // 🔄 після видалення — оновити бюджети
       final txProvider = Provider.of<TransactionProvider>(context, listen: false);
+      await txProvider.deleteTransactionById(widget.transaction.id);
+
       final budgetProvider = Provider.of<BudgetProvider>(context, listen: false);
       budgetProvider.updateTransactions(txProvider.transactions);
 
@@ -109,12 +99,7 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
   @override
   Widget build(BuildContext context) {
     final categoryProvider = Provider.of<CategoryProvider>(context);
-
-    // ⛔ Уникнення дублікатів
-    final categories = categoryProvider.categories
-        .map((c) => c.name)
-        .toSet()
-        .toList(); // 🧼 remove duplicates
+    final categories = categoryProvider.categories.map((c) => c.name).toSet().toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -130,7 +115,26 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // інші поля...
+            TextFormField(
+              controller: _titleController,
+              decoration: const InputDecoration(labelText: 'Назва'),
+            ),
+            TextFormField(
+              controller: _amountController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Сума'),
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: Text('Дата: ${_selectedDate.toLocal().toString().split(" ")[0]}'),
+                ),
+                TextButton(
+                  onPressed: _presentDatePicker,
+                  child: const Text('Оберіть дату'),
+                ),
+              ],
+            ),
             DropdownButtonFormField<String>(
               value: categories.contains(_selectedCategory) ? _selectedCategory : null,
               decoration: const InputDecoration(labelText: 'Категорія'),
@@ -157,9 +161,9 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
     );
   }
 
-
   @override
   void dispose() {
+    _titleController.dispose();
     _amountController.dispose();
     super.dispose();
   }

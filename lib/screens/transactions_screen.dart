@@ -55,7 +55,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 : ListView.builder(
               itemCount: filteredTransactions.length,
               itemBuilder: (context, index) {
-                final tx = filteredTransactions[index];
+                final tx = filteredTransactions.reversed.toList()[index]; // нові транзакції вгорі
                 final category = categoryProvider.categories.firstWhere(
                       (c) => c.name == tx.category,
                   orElse: () => CategoryModel(
@@ -66,10 +66,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   ),
                 );
 
-
-                final color = category != null
-                    ? Color(category.color)
-                    : Colors.grey.shade400;
+                final color = Color(category.color);
 
                 return Dismissible(
                   key: Key(tx.id),
@@ -92,19 +89,28 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   child: ListTile(
                     leading: CircleAvatar(
                       backgroundColor: color,
-                      child: Text(
-                        tx.amount.toInt().toString(),
-                        style: const TextStyle(color: Colors.white),
+                    ),
+                    title: Text(
+                      tx.title.isNotEmpty ? tx.title : tx.category,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.normal,
+                        fontSize: 16,
                       ),
                     ),
-                    title: Text(tx.title, style: const TextStyle(fontWeight: FontWeight.bold)),
                     subtitle: Text(
-                      '${DateFormat.yMMMd('uk').format(tx.date)} · ${tx.category}',
-                      style: const TextStyle(fontStyle: FontStyle.italic),
+                      tx.title.isNotEmpty
+                          ? '${DateFormat.yMMMd('uk').format(tx.date)} · ${tx.category}'
+                          : DateFormat.yMMMd('uk').format(tx.date),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey,
+                      ),
                     ),
                     trailing: Text(
                       '${tx.amount.toStringAsFixed(2)} ${tx.currency}',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     onTap: () async {
                       await Navigator.push(
@@ -118,6 +124,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   ),
                 );
               },
+
             ),
           ),
         ],
